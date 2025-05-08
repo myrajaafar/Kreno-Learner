@@ -1,4 +1,4 @@
-import AccountModification from '../src/components/Settings/AccountModification';
+import AccountModification from './Settings/AccountModification';
 
 export default function AccountModificationPage() {
   return <AccountModification />;

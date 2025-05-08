@@ -1,5 +1,12 @@
-import CalendarScreen from '../../src/components/Calendar/CalendarScreen';
+import { View, Text } from 'react-native'
+import React from 'react'
 
-export default function Calendar() {
-  return <CalendarScreen />;
+const Calendar = () => {
+  return (
+    <View>
+      <Text className='text-4xl'>CalendarScreen</Text>
+    </View>
+  )
 }
+
+export default Calendar

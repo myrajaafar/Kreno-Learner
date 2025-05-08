@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 
-const SettingsScreen = () => {
+const SettingScreen = () => {
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -37,4 +37,4 @@ const SettingsScreen = () => {
   );
 };
 
-export default SettingsScreen;
+export default SettingScreen;
