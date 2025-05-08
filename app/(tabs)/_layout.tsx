@@ -1,18 +1,21 @@
 import { Tabs } from 'expo-router';
+import { Image } from 'react-native';
 
 export default function TabsLayout() {
+
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         tabBarStyle: {
-          backgroundColor: '#f3f4f6',
-          borderTopColor: '#d1d5db',
-          borderTopWidth: 1,
+          backgroundColor: 'rgba(66, 80, 154, 0.35)',
+          borderTopWidth: 0,
         },
+        tabBarActiveTintColor: '#42509A',
+        tabBarInactiveTintColor: '#4C4E58',
         tabBarLabelStyle: {
           fontSize: 12,
-          color: '#4b5563',
+          fontFamily: 'Comfortaa-Bold',
         },
       }}
     >
@@ -20,28 +23,64 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
-          tabBarLabel: 'DASHBOARD',
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({focused}) => (
+            <Image 
+              source={focused
+                ? require('../../assets/icons/dashboard-active.png')
+                : require('../../assets/icons/dashboard-inactive.png')}
+              className='w-6 h-6'
+              resizeMode="contain"
+            />
+          )
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: 'Calendar',
-          tabBarLabel: 'CALENDAR',
+          tabBarLabel: 'Calendar',
+          tabBarIcon: ({focused}) => (
+            <Image 
+            source={focused
+              ? require('../../assets/icons/calendar-active.png')
+              : require('../../assets/icons/calendar-inactive.png')}
+              className='w-6 h-6'
+              resizeMode="contain"
+            />
+          )
         }}
       />
       <Tabs.Screen
         name="services"
         options={{
           title: 'Services',
-          tabBarLabel: 'SERVICES',
+          tabBarLabel: 'Services',
+          tabBarIcon: ({focused}) => (
+            <Image 
+            source={focused
+              ? require('../../assets/icons/services-active.png')
+              : require('../../assets/icons/services-inactive.png')}
+              className='w-6 h-6'
+              resizeMode="contain"
+            />
+          )
         }}
       />
       <Tabs.Screen
-        name="test"
+        name="theory"
         options={{
           title: 'test',
-          tabBarLabel: 'TEST',
+          tabBarLabel: 'Testing',
+          tabBarIcon: ({focused}) => (
+            <Image 
+            source={focused
+              ? require('../../assets/icons/test-active.png')
+              : require('../../assets/icons/test-inactive.png')}
+              className='w-6 h-6'
+              resizeMode="contain"
+            />
+          )
         }}
       />
     </Tabs>

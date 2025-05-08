@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const TestScreen = () => {
+const AvailabilityForm = () => {
   return (
     <View>
-      <Text>TestScreen</Text>
+      <Text>AvailabilityForm</Text>
     </View>
   )
 }
 
-export default TestScreen
+export default AvailabilityForm

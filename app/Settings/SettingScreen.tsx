@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 
 const SettingScreen = () => {
@@ -17,20 +17,24 @@ const SettingScreen = () => {
   return (
     <View className="flex-1 bg-white">
       <View className="p-4">
-        <Text className="text-lg font-bold mb-4">Settings</Text>
+        <Text className="text-lg font-cbold mb-4">Settings</Text>
+        <TouchableOpacity
+          className="flex-row justify-between items-center p-4"
+          onPress={() => router.replace('../(tabs)/dashboard')}
+        />
         <TouchableOpacity
           className="flex-row justify-between items-center p-4"
           onPress={() => router.push('/account-modification')}
         >
-          <Text>Modify Account</Text>
-          <Text className="text-orange-500">→</Text>
+          <Text className='font-cregular'>Modify Account</Text>
+          <Image source={require("../../assets/icons/edit-icon.png")} resizeMode="cover" className="w-5 h-5"/>
         </TouchableOpacity>
         <TouchableOpacity
           className="flex-row justify-between items-center p-4"
           onPress={handleLogout}
         >
-          <Text>Logout</Text>
-          <Text className="text-orange-500">→</Text>
+          <Text className='font-cregular'>Logout</Text>
+          <Image source={require("../../assets/icons/logout-icon.png")} resizeMode="cover" className="w-5 h-5"/>
         </TouchableOpacity>
       </View>
     </View>

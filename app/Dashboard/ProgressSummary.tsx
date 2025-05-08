@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const SettingsScreen = () => {
+const ProgressSummary = () => {
   return (
     <View>
-      <Text>SettingsScreen</Text>
+      <Text>ProgressSummary</Text>
     </View>
   )
 }
 
-export default SettingsScreen
+export default ProgressSummary
