@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SettingScreen = () => {
   const handleLogout = () => {
@@ -15,7 +16,7 @@ const SettingScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <View className="p-4">
         <Text className="text-lg font-cbold mb-4">Settings</Text>
         <TouchableOpacity
@@ -37,7 +38,7 @@ const SettingScreen = () => {
           <Image source={require("../../assets/icons/logout-icon.png")} resizeMode="cover" className="w-5 h-5"/>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

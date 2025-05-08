@@ -10,11 +10,11 @@ export default function RootLayout() {
     'Comfortaa-Bold': require('../assets/fonts/Comfortaa-Bold.ttf'),
   });
   return (
-    <Stack>
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="service-details/[id]" options={{ headerShown: true, title: 'Service Details' }} />
-      <Stack.Screen name="account-modification" options={{ headerShown: true, title: 'Account Modification' }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login"  />
+      <Stack.Screen name="(tabs)"/>
+      <Stack.Screen name="service-details/[id]" options={{ title: 'Service Details' }} />
+      <Stack.Screen name="account-modification" options={{ title: 'Account Modification' }} />
     </Stack>
   );
 }
