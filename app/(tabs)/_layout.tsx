@@ -40,6 +40,7 @@ export default function TabsLayout() {
         options={{
           title: 'Calendar',
           tabBarLabel: 'Calendar',
+          headerShown: false,
           tabBarIcon: ({focused}) => (
             <Image 
             source={focused
