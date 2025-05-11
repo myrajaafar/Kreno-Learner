@@ -189,7 +189,7 @@ const CalendarScreen = () => {
               let slotContent = null;
 
               if (bookedLessonForSlot) {
-                slotStyle = `${bookedLessonForSlot.color} opacity-80`;
+                slotStyle = `bg-[#E1BEE8] opacity-80`;
                 slotContent = (
                   <Text
                     className="text-white font-cmedium text-xs text-center p-1"

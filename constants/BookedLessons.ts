@@ -6,7 +6,6 @@ interface BookedLesson {
   startTime: string; // HH:MM
   endTime: string; // HH:MM
   title: string;
-  color: string; // Tailwind background color class e.g., 'bg-red-400'
 }
 
 const staticBookedLessons: BookedLesson[] = [
@@ -16,7 +15,6 @@ const staticBookedLessons: BookedLesson[] = [
     startTime: '10:00',
     endTime: '12:00', // 2-hour lesson
     title: 'Event 246',
-    color: 'bg-red-400',
   },
   {
     id: '2',
@@ -24,7 +22,6 @@ const staticBookedLessons: BookedLesson[] = [
     startTime: '14:00',
     endTime: '15:00', // 1-hour lesson
     title: 'Event 250',
-    color: 'bg-red-400',
   },
   {
     id: '3',
@@ -32,7 +29,6 @@ const staticBookedLessons: BookedLesson[] = [
     startTime: '11:00',
     endTime: '13:00',
     title: 'Event 254',
-    color: 'bg-red-400',
   },
   { 
     id: '4',
@@ -40,7 +36,6 @@ const staticBookedLessons: BookedLesson[] = [
     startTime: '20:00',
     endTime: '22:00', // Assuming a 1-hour lesson
     title: 'Early Bird Meeting',
-    color: 'bg-red-400', // Example color, ensure this is in your Tailwind config
   },
 ];
 

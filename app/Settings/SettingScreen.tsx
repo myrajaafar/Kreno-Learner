@@ -21,10 +21,6 @@ const SettingScreen = () => {
         <Text className="text-lg font-cbold mb-4">Settings</Text>
         <TouchableOpacity
           className="flex-row justify-between items-center p-4"
-          onPress={() => router.replace('../(tabs)/dashboard')}
-        />
-        <TouchableOpacity
-          className="flex-row justify-between items-center p-4"
           onPress={() => router.push('/account-modification')}
         >
           <Text className='font-cregular'>Modify Account</Text>
