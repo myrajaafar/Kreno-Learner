@@ -22,8 +22,8 @@ const ServicesList = () => {
   );
 
   return (
-    <View className="flex-1 bg-white">
-      <Text className="text-lg font-bold p-4 font-cbold">Services</Text>
+    <View className="flex-1 bg-white ">
+      <Text className="text-2xl px-4 font-cbold mb-3 text-gray-800">Services</Text>
       <FlatList
         data={servicesData}
         renderItem={renderService}

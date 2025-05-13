@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from 'react-native'; // Added ImageSourcePropType
+import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from 'react-native';
 
 
 interface CategoryCardProps {
-  iconSource: ImageSourcePropType; // Changed from iconPlaceholder: string
+  iconSource: ImageSourcePropType;
   title: string;
   description: string;
   onPress?: () => void;
@@ -15,8 +15,8 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ iconSource, title, descript
       onPress={onPress}
       className="bg-gray-100 p-4 rounded-2xl mb-4 flex-row items-center shadow-sm"
     >
-        <Image source={iconSource} className='w-10 h-10 mr-3' resizeMode="contain" /> {/* Use iconSource and added mr-3, resizeMode */}
-      <View className="flex-1 ml-1"> {/* Added ml-1 for a bit of space if icon is large */}
+        <Image source={iconSource} className='w-10 h-10 mr-3' resizeMode="contain" />
+      <View className="flex-1 ml-1">
         <Text className="text-base font-cbold text-gray-800">{title}</Text>
         <Text className="text-sm font-cregular text-gray-600 mt-1">{description}</Text>
       </View>
