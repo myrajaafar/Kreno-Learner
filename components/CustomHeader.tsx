@@ -13,8 +13,11 @@ interface CustomHeaderProps {
   onSettingsPress?: () => void;
 }
 
-const CustomHeader: React.FC<CustomHeaderProps> = ({ showSettingsIcon, onSettingsPress }) => {
-  const handlePress = () => {
+const CustomHeader: React.FC<CustomHeaderProps> = ({ 
+  showSettingsIcon, 
+  onSettingsPress,
+}) => {
+  const handleSettingsPress = () => {
     if (onSettingsPress) {
       onSettingsPress();
     } else if (showSettingsIcon) {
@@ -39,7 +42,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({ showSettingsIcon, onSetting
         <Text className="text-[#A8ACB4] font-cregular text-sm">Student</Text>
       </View>
       {showSettingsIcon && (
-        <TouchableOpacity onPress={handlePress} className="p-2">
+        <TouchableOpacity onPress={handleSettingsPress} className="p-2">
           <MaterialCommunityIcons name="cog-outline" size={28} color="#FF6347" />
           </TouchableOpacity>
       )}

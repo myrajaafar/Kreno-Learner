@@ -2,10 +2,12 @@ import { format, addDays } from 'date-fns';
 
 interface BookedLesson {
   id: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:MM
-  endTime: string; // HH:MM
+  date: string;
+  startTime: string;
+  endTime: string;
   title: string;
+  type?: string;
+  location?: string;  
 }
 
 const staticBookedLessons: BookedLesson[] = [
@@ -15,6 +17,8 @@ const staticBookedLessons: BookedLesson[] = [
     startTime: '10:00',
     endTime: '12:00', // 2-hour lesson
     title: 'Event 246',
+    type: 'lesson',
+    location: 'imagine street, london',
   },
   {
     id: '2',
