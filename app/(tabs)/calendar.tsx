@@ -65,6 +65,17 @@ const calculateDuration = (startTime: string, endTime: string): string => {
   return durationString || '0min'; // Default to 0min if calculation results in empty
 };
 
+const DetailRow: React.FC<{ iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; label: string; value: string; valueColor?: string; isMultiline?: boolean }> = 
+({ iconName, label, value, valueColor = "text-gray-600", isMultiline = false }) => (
+  <View className="mb-3">
+    <View className="flex-row items-start">
+      <MaterialCommunityIcons name={iconName} size={20} color="#f97316" className="mr-2 mt-0.5" />
+      <Text className="text-base font-csemibold text-gray-700 flex-shrink mr-1">{label}:</Text>
+    </View>
+    <Text className={`text-sm ${valueColor} ml-8 ${isMultiline ? 'mt-1' : 'mt-0'}`}>{value}</Text>
+  </View>
+);
+
 const CalendarScreen = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -85,8 +96,8 @@ const CalendarScreen = () => {
 
   const onRefresh = React.useCallback(() => {
     setIsRefreshing(true);
-    const today = new Date();~
-    setSelectedDate(today);
+    const today = new Date(); ~
+      setSelectedDate(today);
     setCurrentDate(today);
     setTimeout(() => {
       setIsRefreshing(false);
@@ -340,7 +351,7 @@ const CalendarScreen = () => {
                 slotStyle = `bg-[#E1BEE8] opacity-80`;
                 slotContent = (
                   <Text
-                    className="text-gray-800 font-cmedium text-xs text-center p-1"
+                    className="text-[#673172] font-cbold text-center"
                     numberOfLines={2}
                   >
                     {bookedLessonForSlot.title}
@@ -349,7 +360,7 @@ const CalendarScreen = () => {
               } else if (isSlotAvailable) {
                 slotStyle = 'bg-green-200';
                 slotContent = (
-                  <Text className="text-green-700 font-cmedium text-xs">Available</Text>
+                  <Text className="text-green-700 font-cbold">Available</Text>
                 );
               } else {
                 if (isPastSlot) {
@@ -394,55 +405,27 @@ const CalendarScreen = () => {
             setSelectedLessonForModal(null);
           }}
         >
-          <View className='flex-1 justify-center items-center bg-[rgba(0, 0, 0, 0.5)]'> 
+          <View className='flex-1 justify-center items-center bg-[#000000aa]'>
             <View className="bg-white p-6 rounded-lg shadow-lg w-11/12 relative">
-              <View 
-                className="flex-row justify-between mb-3 p-2 pl-4 rounded-md bg-[#E1BEE8]"
-              >
-                <View className="flex-1 mr-2">
-                  <Text className="text-xl font-cbold text-white">{selectedLessonForModal.title}</Text>
+              <View className="flex-row justify-between items-center pb-3 mb-3 border-b border-gray-200">
+                <View>
+                  <Text className="text-xl font-cbold text-gray-800" numberOfLines={1}>{selectedLessonForModal.title}</Text>
                   {selectedLessonForModal.type && (
-                    <Text className="text-sm font-cregular text-white mt-1">{selectedLessonForModal.type}</Text>
+                    <Text className="font-cbold text-gray-500">{selectedLessonForModal.type}</Text>
                   )}
                 </View>
-                <TouchableOpacity
-                  onPress={() => {
+                
+                <TouchableOpacity onPress={() => {
                     setLessonDetailModalVisible(!isLessonDetailModalVisible);
                     setSelectedLessonForModal(null);
-                  }}
-                  className="px-1"
-                >
-                  <MaterialCommunityIcons name="close-outline" size={25} color="#42509A" />
+                  }} className="p-1 -mr-3 -mt-5">
+                  <MaterialCommunityIcons name="close-circle-outline" size={28} color="#6b7280" />
                 </TouchableOpacity>
               </View>
-              <View className="flex-row items-center mb-1">
-                <MaterialCommunityIcons name="calendar-blank-outline" size={20} color="#f97316" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Date</Text>
-              </View>
-              <Text className="text-sm text-gray-600 mb-3 ml-7">
-                {format(selectedDate, 'EEEE d MMMM yyyy')}
-              </Text>
-              <View className="flex-row items-center mb-1">
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#f97316" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Time</Text>
-              </View>
-              <Text className="text-sm text-gray-600 mb-3 ml-7">
-                {selectedLessonForModal.startTime} - {selectedLessonForModal.endTime}
-              </Text>
-              <View className="flex-row items-center mb-1">
-                <MaterialCommunityIcons name="timer-sand" size={20} color="#f97316" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Duration</Text>
-              </View>
-              <Text className="text-sm text-gray-600 mb-4 ml-7">
-                {calculateDuration(selectedLessonForModal.startTime, selectedLessonForModal.endTime)}
-              </Text>
-              <View className="flex-row items-center mb-2">
-                <MaterialCommunityIcons name="map-marker-outline" size={20} color="#f97316" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Location</Text>
-              </View>
-              <Text className="text-sm text-gray-600 ml-7">
-                {selectedLessonForModal.location || '-'}
-              </Text>
+              <DetailRow iconName="calendar-blank-outline" label="Date" value={format(selectedDate, 'EEEE d MMMM yyyy')} />
+              <DetailRow iconName="clock-outline" label="Time" value={`${selectedLessonForModal.startTime} - ${selectedLessonForModal.endTime}`} />
+              <DetailRow iconName="timer-sand" label="Duration" value={calculateDuration(selectedLessonForModal.startTime, selectedLessonForModal.endTime)} />
+              <DetailRow iconName="map-marker-outline" label="Location" value={selectedLessonForModal.location || '-'} />
             </View>
           </View>
           {/*<BlurView

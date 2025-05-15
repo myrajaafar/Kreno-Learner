@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { router } from 'expo-router'; 
 
+
 const firstName = 'Myra';
 const lastName = 'Jaafar';
 
@@ -26,7 +27,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   };
 
   return (
-    <View className="flex-row items-center p-7 bg-[#42509A17] rounded-b-[50px] mb-4">
+    <View className="flex-row items-center p-5 bg-[#42509A17] rounded-b-[50px] mb-4">
       <Image
         source={{ uri: PROFILE_PIC_URL }}
         className="mr-3"
