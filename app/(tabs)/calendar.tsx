@@ -7,7 +7,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 //import { BlurView } from '@react-native-community/blur';
 import { Stack, useFocusEffect } from 'expo-router';
 import CustomHeader from '../../components/CustomHeader';
-import { staticBookedLessons, BookedLesson } from '../../constants/BookedLessons';
+import { BookedLesson, bookedLessons } from '../../constants/BookedLessons';
 
 const DayDateComponent = ({ date, isToday, onPress, isSelected }) => {
   const dayName = format(date, 'E');
@@ -106,7 +106,7 @@ const CalendarScreen = () => {
 
   const lessonsForSelectedDate = useMemo(() => {
     const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    const filteredLessons = staticBookedLessons.filter(lesson => lesson.date === dateKey);
+    const filteredLessons = bookedLessons.filter(lesson => lesson.date === dateKey);
     return filteredLessons;
   }, [selectedDate]);
 
@@ -254,7 +254,7 @@ const CalendarScreen = () => {
       <Stack.Screen options={{ headerShown: false }} />
       <CustomHeader />
 
-      <View className="px-4">
+      <View className="pt-3 px-4">
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-2xl font-cbold text-gray-800">Calendar</Text>
           <TouchableOpacity
