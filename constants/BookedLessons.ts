@@ -11,7 +11,7 @@ export interface BookedLesson {
   instructorId?: string;
   studentId?: string;
   status?: 'booked' | 'completed' | 'cancelled'; // Optional status
-  feedbackGiven?: boolean; // New property
+  EvaluationGiven?: boolean; // New property
   // ... any other properties
 }
 
@@ -38,7 +38,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST001',
     studentId: 'STUD001',
     status: 'completed',
-    feedbackGiven: true,
+    EvaluationGiven: true,
   },
   {
     id: 'L002',
@@ -50,7 +50,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST002',
     studentId: 'STUD001',
     status: 'completed',
-    feedbackGiven: true,
+    EvaluationGiven: true,
   },
   {
     id: 'L003',
@@ -62,7 +62,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST001',
     studentId: 'STUD002',
     status: 'completed',
-    feedbackGiven: false, // Needs feedback
+    EvaluationGiven: false, // Needs Evaluation
   },
   {
     id: 'L004',
@@ -74,7 +74,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST003',
     studentId: 'STUD003',
     status: 'completed',
-    feedbackGiven: false, // Needs feedback
+    EvaluationGiven: false, // Needs Evaluation
   },
   {
     id: 'L005',
@@ -86,7 +86,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST001',
     studentId: 'STUD001',
     status: 'completed',
-    // feedbackGiven: undefined, // Implicitly needs feedback
+    // EvaluationGiven: undefined, // Implicitly needs Evaluation
   },
 
   // --- Today's Lessons ---
@@ -100,7 +100,7 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST002',
     studentId: 'STUD004',
     status: 'booked',
-    // feedbackGiven: false (will be false once completed)
+    // EvaluationGiven: false (will be false once completed)
   },
   {
     id: 'L007',
@@ -214,6 +214,6 @@ export const bookedLessons: BookedLesson[] = [
     instructorId: 'INST002',
     studentId: 'STUD003',
     status: 'cancelled',
-    feedbackGiven: false, // No feedback for cancelled
+    EvaluationGiven: false, // No Evaluation for cancelled
   },
 ];

@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import CustomHeader from '../../components/CustomHeader';
 import { testCategoriesData, TestCategory } from '../../constants/TestCategories';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Define the icon rating levels and their corresponding descriptive values
 const ICON_RATINGS = [
   { iconName: 'emoticon-sad-outline', value: 'Very Poor', description: "Needs Significant Improvement", color: '#ef4444' }, // Red
   { iconName: 'emoticon-neutral-outline', value: 'Poor', description: "Needs Improvement", color: '#f97316' }, // Orange
   { iconName: 'emoticon-happy-outline', value: 'Okay', description: "Developing Adequately", color: '#eab308' }, // Yellow
   { iconName: 'emoticon-excited-outline', value: 'Good', description: "Proficient", color: '#22c55e' }, // Green
-  { iconName: 'emoticon-cool-outline', value: 'Very Good', description: "Exceeds Expectations", color: '#3b82f6' }, // Blue (already a face icon)
+  { iconName: 'emoticon-cool-outline', value: 'Very Good', description: "Exceeds Expectations", color: '#3b82f6' }, // Blue
 ] as const;
 
 type IconRatingValue = typeof ICON_RATINGS[number]['value'];
 
-interface SkillRatings {
+interface SkillRatings { 
   [key: string]: IconRatingValue | '';
 }
+
+const INSTRUCTOR_RATING_CATEGORIES = [
+  { id: 'comm', title: 'Communication & Clarity' },
+  { id: 'pat', title: 'Patience & Supportiveness' },
+  { id: 'prof', title: 'Professionalism & Attitude' },
+  { id: 'punct', title: 'Punctuality & Preparedness' },
+] as const;
+
 
 const IconSkillRating = ({
   currentRating,
@@ -55,33 +61,45 @@ const IconSkillRating = ({
 };
 
 
-const FeedbackForm = () => {
+const EvaluationForm = () => {
   const { lessonId, lessonTitle } = useLocalSearchParams<{ lessonId: string, lessonTitle?: string }>();
 
   const [skillRatings, setSkillRatings] = useState<SkillRatings>({});
-  const [overallRating, setOverallRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [instructorRatings, setInstructorRatings] = useState<SkillRatings>({});
+  const [overallLessonRating, setOverallLessonRating] = useState(0);
+  const [evaluationComment, setEvaluationComment] = useState(''); 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const initialRatings: SkillRatings = {};
+    const initialSkillRatings: SkillRatings = {};
     testCategoriesData
       .filter(category => category.title !== 'General Test')
       .forEach(category => {
-      initialRatings[category.title] = '';
+      initialSkillRatings[category.title] = '';
     });
-    setSkillRatings(initialRatings);
+    setSkillRatings(initialSkillRatings);
+
+    const initialInstructorRatings: SkillRatings = {};
+    INSTRUCTOR_RATING_CATEGORIES.forEach(category => {
+      initialInstructorRatings[category.title] = '';
+    });
+    setInstructorRatings(initialInstructorRatings);
+
   }, []);
 
   const handleSkillRatingChange = (categoryTitle: string, rating: IconRatingValue) => {
     setSkillRatings(prev => ({ ...prev, [categoryTitle]: rating }));
   };
 
-  const handleOverallRating = (rating: number) => {
-    setOverallRating(rating);
+  const handleInstructorRatingChange = (categoryTitle: string, rating: IconRatingValue) => {
+    setInstructorRatings(prev => ({ ...prev, [categoryTitle]: rating }));
   };
 
-  const handleSubmit = async () => {
+  const handleOverallLessonRatingChange = (rating: number) => {
+    setOverallLessonRating(rating);
+  };
+
+  const handleSubmitEvaluation = async () => {
     setIsSubmitting(true);
     
     const unratedSkills = Object.values(skillRatings).some(rating => rating === '');
@@ -91,29 +109,37 @@ const FeedbackForm = () => {
       return;
     }
 
-    if (overallRating === 0) {
+    const unratedInstructorCategories = Object.values(instructorRatings).some(rating => rating === '');
+    if (unratedInstructorCategories) {
+      Alert.alert('Incomplete Form', 'Please rate all instructor categories using the icons.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (overallLessonRating === 0) {
       Alert.alert('Incomplete Form', 'Please provide an overall lesson rating (stars).');
       setIsSubmitting(false);
       return;
     }
-    if (comment.trim() === '') {
-      Alert.alert('Incomplete Form', 'Please provide a comment.');
+    if (evaluationComment.trim() === '') {
+      Alert.alert('Incomplete Form', 'Please provide a comment for the evaluation.');
       setIsSubmitting(false);
       return;
     }
 
-    const feedbackData = {
+    const evaluationData = {
       lessonId,
       skillRatings: skillRatings,
-      overallRating,
-      comment,
+      instructorRatings: instructorRatings,
+      overallLessonRating,
+      comment: evaluationComment,
       submittedAt: new Date().toISOString(),
     };
 
-    console.log('Submitting Feedback:', feedbackData);
+    console.log('Submitting Evaluation:', evaluationData);
 
     setTimeout(() => {
-        Alert.alert('Success (Simulated)', 'Feedback submitted successfully!');
+        Alert.alert('Success (Simulated)', 'Evaluation submitted successfully!'); 
         if (router.canGoBack()) router.back();
         setIsSubmitting(false);
     }, 1000);
@@ -136,7 +162,7 @@ const FeedbackForm = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white pb-4">
       <Stack.Screen options={{ headerShown: false }} />
       <CustomHeader showSettingsIcon={false} />
       <KeyboardAvoidingView 
@@ -145,7 +171,7 @@ const FeedbackForm = () => {
       >
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 20 }}>
           <View className="p-4">
-            <Text className="text-2xl font-cbold text-gray-800 mb-1">Lesson Feedback</Text>
+            <Text className="text-2xl font-cbold text-gray-800 mb-1">Lesson Evaluation</Text>
             {lessonTitle && <Text className="text-lg font-cregular text-gray-600 mb-6">{lessonTitle}</Text>}
 
             <Text className="text-xl font-csemibold text-gray-700 mb-3">Skill Assessment</Text>
@@ -161,34 +187,45 @@ const FeedbackForm = () => {
               </View>
             ))}
 
+            <Text className="text-xl font-csemibold text-gray-700 mt-4 mb-3">Instructor Rating</Text>
+            {INSTRUCTOR_RATING_CATEGORIES.map((category) => (
+              <View key={category.id} className="mb-4 p-3 bg-slate-50 rounded-lg">
+                <Text className="text-base font-cmedium text-gray-700 mb-1.5">{category.title}</Text>
+                <IconSkillRating
+                  currentRating={instructorRatings[category.title] || ''}
+                  onRate={(rating) => handleInstructorRatingChange(category.title, rating)}
+                />
+              </View>
+            ))}
+
             <Text className="text-xl font-csemibold text-gray-700 mt-4 mb-1">Overall Lesson Rating</Text>
-            <StarRating rating={overallRating} onRate={handleOverallRating} />
+            <StarRating rating={overallLessonRating} onRate={handleOverallLessonRatingChange} />
 
             <Text className="text-xl font-csemibold text-gray-700 mt-4 mb-2">Comments</Text>
             <TextInput
               className="border border-gray-300 rounded-md p-3 h-32 text-base font-cregular bg-white text-gray-800"
-              placeholder="Share your thoughts on the lesson..."
+              placeholder="Share your thoughts on the lesson evaluation..." 
               placeholderTextColor="#9ca3af"
-              value={comment}
-              onChangeText={setComment}
+              value={evaluationComment}
+              onChangeText={setEvaluationComment}
               multiline
               textAlignVertical="top"
             />
 
             <TouchableOpacity
               className={`mt-8 py-3.5 rounded-lg ${isSubmitting ? 'bg-gray-400' : 'bg-orange-500 active:bg-orange-600'}`}
-              onPress={handleSubmit}
+              onPress={handleSubmitEvaluation}
               disabled={isSubmitting}
             >
               <Text className="text-white text-center font-cbold text-lg">
-                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                {isSubmitting ? 'Submitting...' : 'Submit Evaluation'}
               </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
-export default FeedbackForm;
+export default EvaluationForm;

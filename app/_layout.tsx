@@ -13,8 +13,6 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)"/>
-      <Stack.Screen name="service-details/[id]" options={{ title: 'Service Details' }} />
-      <Stack.Screen name="account-modification" options={{ title: 'Account Modification' }} />
     </Stack>
   );
 }

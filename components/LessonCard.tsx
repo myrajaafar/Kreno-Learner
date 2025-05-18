@@ -27,7 +27,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, onPressAction }) => {
   return (
     <TouchableOpacity 
       onPress={onPressAction}
-      className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200 active:bg-gray-100" // Added active:bg-gray-100 for feedback
+      className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200 active:bg-gray-100"
     >
       <View className="flex-row justify-between">
         {/* Left Side: Lesson Type & Location */}

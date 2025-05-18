@@ -49,7 +49,7 @@ const DetailRow: React.FC<{ iconName: React.ComponentProps<typeof MaterialCommun
 
 const Dashboard = () => {
   const [upcomingLessons, setUpcomingLessons] = useState<BookedLesson[]>([]);
-  const [pendingFeedbackLessons, setPendingFeedbackLessons] = useState<BookedLesson[]>([]);
+  const [pendingEvaluationLessons, setPendingEvaluationLessons] = useState<BookedLesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLessonDetailModalVisible, setLessonDetailModalVisible] = useState(false); // Modal visibility
   const [selectedLessonForModal, setSelectedLessonForModal] = useState<BookedLesson | null>(null); // Lesson for modal
@@ -59,7 +59,7 @@ const Dashboard = () => {
     const processLessons = () => {
       const today = startOfDay(new Date());
       const upcoming: BookedLesson[] = [];
-      const pendingFeedback: BookedLesson[] = [];
+      const pendingEvaluation: BookedLesson[] = [];
 
       bookedLessons.forEach(lesson => {
         // Ensure date and startTime are valid before creating a Date object
@@ -73,8 +73,8 @@ const Dashboard = () => {
               if (lesson.status === 'booked') { // Only show booked upcoming lessons
                 upcoming.push(lesson);
               }
-            } else if (isPast(lessonDateTime) && lesson.status === 'completed' && !lesson.feedbackGiven) {
-              pendingFeedback.push(lesson);
+            } else if (isPast(lessonDateTime) && lesson.status === 'completed' && !lesson.EvaluationGiven) {
+              pendingEvaluation.push(lesson);
             }
           } catch (error) {
             console.warn(`Invalid date format for lesson ID ${lesson.id}: ${lessonDateTimeString}`, error);
@@ -91,8 +91,8 @@ const Dashboard = () => {
         return dateTimeA.getTime() - dateTimeB.getTime();
       });
 
-      // Sort pending feedback lessons by date and time (most recent past first)
-      pendingFeedback.sort((a, b) => {
+      // Sort pending Evaluation lessons by date and time (most recent past first)
+      pendingEvaluation.sort((a, b) => {
         const dateTimeA = parseISO(`${a.date}T${a.startTime}`);
         const dateTimeB = parseISO(`${b.date}T${b.startTime}`);
         return dateTimeB.getTime() - dateTimeA.getTime();
@@ -100,7 +100,7 @@ const Dashboard = () => {
 
 
       setUpcomingLessons(upcoming.slice(0, 3)); // Show max 3 upcoming
-      setPendingFeedbackLessons(pendingFeedback); // Show all pending feedback
+      setPendingEvaluationLessons(pendingEvaluation); // Show all pending Evaluation
       setIsLoading(false);
     };
 
@@ -118,9 +118,9 @@ const Dashboard = () => {
     setSelectedLessonForModal(null);
   };
 
-  const handleGiveFeedback = (lesson: BookedLesson) => {
+  const handleGiveEvaluation = (lesson: BookedLesson) => {
     router.push({
-      pathname: '/Feedback/FeedbackForm',
+      pathname: '/Evaluation/EvaluationForm',
       params: { lessonId: lesson.id, lessonTitle: lesson.title }
     });
   };
@@ -153,26 +153,26 @@ const Dashboard = () => {
                 <Text className="text-sm text-gray-500 mb-6 ml-1">No upcoming lessons.</Text>
               )}
 
-              {/* Pending Feedback Section */}
+              {/* Pending Evaluation Section */}
               <View className="flex-row justify-between items-center mt-6 mb-3">
-                <Text className="text-xl font-csemibold text-gray-700">Pending Feedback</Text>
+                <Text className="text-xl font-csemibold text-gray-700">Pending Evaluation</Text>
                 <TouchableOpacity
-                  onPress={() => router.push('/Feedback/FeedbackHistoryList')} // Navigate to Feedback History
+                  onPress={() => router.push('/Evaluation/EvaluationHistoryList')} // Navigate to Evaluation History
                   className="p-2" // Add some padding for easier touch
                 >
                   <MaterialCommunityIcons name="history" size={24} color="#fb923c" />
                 </TouchableOpacity>
               </View>
-              {pendingFeedbackLessons.length > 0 ? (
-                pendingFeedbackLessons.map(lesson => (
+              {pendingEvaluationLessons.length > 0 ? (
+                pendingEvaluationLessons.map(lesson => (
                   <LessonCard
                     key={`pending-${lesson.id}`}
                     lesson={lesson}
-                    onPressAction={() => handleGiveFeedback(lesson)}
+                    onPressAction={() => handleGiveEvaluation(lesson)}
                   />
                 ))
               ) : (
-                <Text className="text-sm text-gray-500 mb-6 ml-1">No lessons awaiting feedback.</Text>
+                <Text className="text-sm text-gray-500 mb-6 ml-1">No lessons awaiting Evaluation.</Text>
               )}
 
               {/* Progress Summary Section - Modified */}
@@ -180,14 +180,14 @@ const Dashboard = () => {
               <View className="mb-6"> 
                 {/* Overall Skill Rating */}
                 <View className="mb-3">
-                  <Text className="text-base font-cmedium text-gray-800 mb-1">Overall Skill Rating (Feedback):</Text>
+                  <Text className="text-base font-cmedium text-gray-800 mb-1">Overall Skill Rating (Evaluation):</Text>
                   <View className="flex-row items-center">
                     <View className="w-4/5 bg-gray-200 rounded-full h-2.5 mr-2">
                       <View className="bg-green-500 h-2.5 rounded-full" style={{ width: '70%' }}></View>
                     </View>
                     <Text className="text-sm font-csemibold text-green-600">70%</Text>
                   </View>
-                  <Text className="text-xs text-gray-500 mt-0.5 ml-1">Based on 5 lessons with feedback.</Text>
+                  <Text className="text-xs text-gray-500 mt-0.5 ml-1">Based on 5 lessons with Evaluation.</Text>
                 </View>
 
                 {/* Key Areas for Improvement */}
