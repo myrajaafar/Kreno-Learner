@@ -46,7 +46,6 @@ const TheoryTestScreen = () => {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
     if (category) {
@@ -60,7 +59,7 @@ const TheoryTestScreen = () => {
           console.error("Failed to fetch questions:", error);
           setIsLoading(false);
           Alert.alert("Error", "Could not load questions. Please try again.");
-          // Optionally navigate back or show an error message
+          if (router.canGoBack()) router.back();
         });
     } else {
       Alert.alert("Error", "No category selected.");
@@ -72,32 +71,52 @@ const TheoryTestScreen = () => {
     setSelectedOptionId(optionId);
   };
 
+  const navigateToResults = () => {
+    router.replace({
+      pathname: '/TheoryTesting/TestResult',
+      params: {
+        score: score.toString(),
+        totalQuestions: questions.length.toString(),
+        category: category || "Unknown Category"
+      }
+    });
+  };
+
   const moveToNextOrEnd = () => {
-    setSelectedOptionId(null); // Reset selection for next question
+    setSelectedOptionId(null); 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
     } else {
-      setShowResults(true);
+      // End of the test - navigate to results
+      navigateToResults();
     }
   };
 
   const handleNextQuestion = () => {
+    let newScore = score;
     if (selectedOptionId === questions[currentQuestionIndex].correctOptionId) {
-      setScore(prevScore => prevScore + 1);
+      newScore = score + 1;
+      setScore(prevScore => prevScore + 1); // Update score state immediately for current session
     }
 
-    setSelectedOptionId(null); // Reset selection for next question
+    setSelectedOptionId(null); 
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
     } else {
-      // End of the test
-      setShowResults(true);
+      // End of the test - navigate to results, pass the potentially updated score
+      router.replace({
+        pathname: '/TheoryTesting/TestResult',
+        params: {
+          score: newScore.toString(), // Pass the final score
+          totalQuestions: questions.length.toString(),
+          category: category || "Unknown Category"
+        }
+      });
     }
   };
 
   const handleSkipQuestion = () => {
-    // Skipping does not affect the score
     moveToNextOrEnd();
   };
 
@@ -134,29 +153,7 @@ const TheoryTestScreen = () => {
     );
   }
 
-  if (showResults) {
-    return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-purple-50 p-5">
-        <Text className="text-2xl font-cbold text-purple-800 mb-4">Test Completed!</Text>
-        <Text className="text-xl text-purple-700 mb-2">Category: {category}</Text>
-        <Text className="text-xl text-purple-700 mb-6">Your Score: {score} / {questions.length}</Text>
-        <TouchableOpacity
-          className="bg-orange-500 px-8 py-3 rounded-lg shadow-md"
-          onPress={() => {
-            // Reset state and navigate or offer retry
-            setCurrentQuestionIndex(0);
-            setScore(0);
-            setSelectedOptionId(null);
-            setShowResults(false);
-            // Potentially re-fetch questions or navigate to categories screen
-            if(router.canGoBack()) router.back(); else router.replace('/'); 
-          }}
-        >
-          <Text className="text-white font-csemibold text-lg">Done</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  // Removed the 'if (showResults)' block that rendered results UI directly
 
   if (questions.length === 0 && !isLoading) {
     return (
@@ -175,10 +172,10 @@ const TheoryTestScreen = () => {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <SafeAreaView className="flex-1">
+    <View className="flex-1">
       <Stack.Screen options={{ headerShown: false }} />
       {/* Category Header */}
-      <View className="flex-row items-center p-5 bg-[#42509A17] rounded-b-[50px] mb-4">
+      <View className="flex-row items-center p-5 bg-[#42509A17] rounded-b-[50px] mb-4 pt-16">
         <View className="flex-1">
           <Text className="text-2xl font-cbold text-[#42509A] ml-2">{currentQuestion.category}</Text>
         </View>
@@ -234,7 +231,7 @@ const TheoryTestScreen = () => {
           <Text className="text-white text-center font-cbold text-base">NEXT</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

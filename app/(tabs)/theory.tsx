@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 
 export default function Theory() {
   return (
-    <SafeAreaView className='flex-1 bg-white' edges={['top', 'left', 'right']}>
+    <View className='flex-1 bg-white'>
       <CustomHeader />
       <ScrollView 
         className='pt-3 px-4'
@@ -28,6 +28,6 @@ export default function Theory() {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

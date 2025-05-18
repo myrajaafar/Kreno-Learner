@@ -69,13 +69,12 @@ const ServicesList = () => {
 
   return (
     <View className="flex-1 pt-3">
-      <Text className="text-2xl px-4 font-cbold mb-4 text-gray-800">Services</Text>
+      <Text className="text-2xl px-4 font-cbold text-gray-800">Services</Text>
       <FlatList
         data={servicesData}
         renderItem={renderService}
         keyExtractor={(item) => item.id}
-        className="flex-1 pt-4"
-        contentContainerStyle={{ paddingBottom: 10 }}
+        className="flex-1 pt-3"
       />
 
       {selectedService && (

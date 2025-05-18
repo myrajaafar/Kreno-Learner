@@ -13,17 +13,14 @@ const ICON_RATINGS = [
   { iconName: 'emoticon-happy-outline', value: 'Okay', description: "Developing Adequately", color: '#eab308' }, // Yellow
   { iconName: 'emoticon-excited-outline', value: 'Good', description: "Proficient", color: '#22c55e' }, // Green
   { iconName: 'emoticon-cool-outline', value: 'Very Good', description: "Exceeds Expectations", color: '#3b82f6' }, // Blue (already a face icon)
-] as const; // Use 'as const' for stricter typing
+] as const;
 
-// Extract just the descriptive values for type safety
 type IconRatingValue = typeof ICON_RATINGS[number]['value'];
 
-// SkillRatings interface will store the descriptive value
 interface SkillRatings {
-  [key: string]: IconRatingValue | ''; // Allow empty string for unrated
+  [key: string]: IconRatingValue | '';
 }
 
-// Renamed to IconSkillRating Component
 const IconSkillRating = ({
   currentRating,
   onRate,
@@ -45,9 +42,9 @@ const IconSkillRating = ({
               accessibilityLabel={level.description}
             >
               <MaterialCommunityIcons
-                name={level.iconName as any} // Type assertion as iconName is from our const
+                name={level.iconName as any}
                 size={isSelected ? 30 : 26}
-                color={isSelected ? level.color : '#6b7280'} // Gray-500 for unselected
+                color={isSelected ? level.color : '#6b7280'}
               />
             </TouchableOpacity>
           </View>
@@ -62,14 +59,16 @@ const FeedbackForm = () => {
   const { lessonId, lessonTitle } = useLocalSearchParams<{ lessonId: string, lessonTitle?: string }>();
 
   const [skillRatings, setSkillRatings] = useState<SkillRatings>({});
-  const [overallRating, setOverallRating] = useState(0); // 0 to 5 for stars
+  const [overallRating, setOverallRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const initialRatings: SkillRatings = {};
-    testCategoriesData.forEach(category => {
-      initialRatings[category.title] = ''; // Default to unrated
+    testCategoriesData
+      .filter(category => category.title !== 'General Test')
+      .forEach(category => {
+      initialRatings[category.title] = '';
     });
     setSkillRatings(initialRatings);
   }, []);
@@ -150,10 +149,11 @@ const FeedbackForm = () => {
             {lessonTitle && <Text className="text-lg font-cregular text-gray-600 mb-6">{lessonTitle}</Text>}
 
             <Text className="text-xl font-csemibold text-gray-700 mb-3">Skill Assessment</Text>
-            {testCategoriesData.map((category: TestCategory) => (
+            {testCategoriesData
+              .filter(category => category.title !== 'General Test')
+              .map((category: TestCategory) => (
               <View key={category.id || category.title} className="mb-4 p-3 bg-slate-50 rounded-lg">
                 <Text className="text-base font-cmedium text-gray-700 mb-1.5">{category.title}</Text>
-                {/* Use the new IconSkillRating component */}
                 <IconSkillRating
                   currentRating={skillRatings[category.title] || ''}
                   onRate={(rating) => handleSkillRatingChange(category.title, rating)}

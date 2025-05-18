@@ -50,7 +50,7 @@ const calculateDuration = (startTime: string, endTime: string): string => {
 
   const durationMinutes = totalEndMinutes - totalStartMinutes;
 
-  if (durationMinutes < 0) return 'N/A'; // Should not happen with correct logic
+  if (durationMinutes < 0) return 'N/A';
 
   const hours = Math.floor(durationMinutes / 60);
   const minutes = durationMinutes % 60;
@@ -62,7 +62,7 @@ const calculateDuration = (startTime: string, endTime: string): string => {
   if (minutes > 0) {
     durationString += `${hours > 0 ? ' ' : ''}${minutes}min`;
   }
-  return durationString || '0min'; // Default to 0min if calculation results in empty
+  return durationString || '0min';
 };
 
 const DetailRow: React.FC<{ iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; label: string; value: string; valueColor?: string; isMultiline?: boolean }> = 
@@ -117,7 +117,7 @@ const CalendarScreen = () => {
 
   const timeSlots = useMemo(() => {
     const slots = [];
-    for (let i = 0; i <= 23; i++) {
+    for (let i = 5; i <= 21; i++) {
       slots.push(`${String(i).padStart(2, '0')}:00`);
       slots.push(`${String(i).padStart(2, '0')}:30`);
     }
@@ -250,7 +250,7 @@ const CalendarScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
+    <View className="flex-1 bg-white">
       <Stack.Screen options={{ headerShown: false }} />
       <CustomHeader />
 
@@ -428,49 +428,9 @@ const CalendarScreen = () => {
               <DetailRow iconName="map-marker-outline" label="Location" value={selectedLessonForModal.location || '-'} />
             </View>
           </View>
-          {/*<BlurView
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-            blurType="light" // Or "dark", "xlight", "prominent" etc. (iOS) / "light", "dark" (Android)
-            blurAmount={10} // Adjust blur intensity
-            reducedTransparencyFallbackColor="white"
-          >
-            <View className="bg-white p-6 rounded-lg shadow-lg w-11/12 relative">
-              <TouchableOpacity
-                className="absolute top-3 right-3 p-1 z-10"
-                onPress={() => {
-                  setLessonDetailModalVisible(!isLessonDetailModalVisible);
-                  setSelectedLessonForModal(null);
-                }}
-              >
-                <MaterialCommunityIcons name="close-circle-outline" size={28} color="#4A5568" />
-              </TouchableOpacity>
-
-              <View className="p-4 rounded-md mb-4 bg-[#E1BEE8]">
-                <Text className="text-xl font-cbold text-white">{selectedLessonForModal.title}</Text>
-                {selectedLessonForModal.type && (
-                  <Text className="text-sm font-cregular text-white mt-1">{selectedLessonForModal.type}</Text>
-                )}
-              </View>
-              <View className="flex-row items-center mb-3">
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#4A5568" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Date et heure</Text>
-              </View>
-              <Text className="text-sm text-gray-600 mb-4 ml-7">
-                {format(selectedDate, 'EEEE d MMMM yyyy')} {selectedLessonForModal.startTime} - {selectedLessonForModal.endTime}
-              </Text>
-
-              <View className="flex-row items-center mb-2">
-                <MaterialCommunityIcons name="map-marker-outline" size={20} color="#4A5568" className="mr-2" />
-                <Text className="text-base font-csemibold text-gray-700">Lieu</Text>
-              </View>
-              <Text className="text-sm text-gray-600 ml-7">
-                {selectedLessonForModal.location || '-'}
-              </Text>
-            </View>
-          </BlurView>*/}
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

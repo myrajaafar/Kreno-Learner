@@ -67,10 +67,13 @@ const Dashboard = () => {
           const lessonDateTimeString = `${lesson.date}T${lesson.startTime}`;
           try {
             const lessonDateTime = parseISO(lessonDateTimeString);
+            if (lesson.status === 'cancelled') return; // Skip cancelled lessons
 
             if (isFuture(lessonDateTime) || lessonDateTime >= today) {
-              upcoming.push(lesson);
-            } else if (isPast(lessonDateTime) && !lesson.feedbackGiven) {
+              if (lesson.status === 'booked') { // Only show booked upcoming lessons
+                upcoming.push(lesson);
+              }
+            } else if (isPast(lessonDateTime) && lesson.status === 'completed' && !lesson.feedbackGiven) {
               pendingFeedback.push(lesson);
             }
           } catch (error) {
@@ -97,7 +100,7 @@ const Dashboard = () => {
 
 
       setUpcomingLessons(upcoming.slice(0, 3)); // Show max 3 upcoming
-      setPendingFeedbackLessons(pendingFeedback.slice(0, 3)); // Show max 3 pending
+      setPendingFeedbackLessons(pendingFeedback); // Show all pending feedback
       setIsLoading(false);
     };
 
@@ -115,7 +118,7 @@ const Dashboard = () => {
     setSelectedLessonForModal(null);
   };
 
-  const handleGiveFeedback = (lesson) => {
+  const handleGiveFeedback = (lesson: BookedLesson) => {
     router.push({
       pathname: '/Feedback/FeedbackForm',
       params: { lessonId: lesson.id, lessonTitle: lesson.title }
@@ -123,7 +126,7 @@ const Dashboard = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
+    <View className="flex-1 bg-white">
       <CustomHeader
         showSettingsIcon={true}
         onSettingsPress={() => router.push("/Settings/SettingScreen")}
@@ -151,19 +154,57 @@ const Dashboard = () => {
               )}
 
               {/* Pending Feedback Section */}
-              <Text className="text-xl font-csemibold text-gray-700 mt-6 mb-3">Pending Feedback</Text>
+              <View className="flex-row justify-between items-center mt-6 mb-3">
+                <Text className="text-xl font-csemibold text-gray-700">Pending Feedback</Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/Feedback/FeedbackHistoryList')} // Navigate to Feedback History
+                  className="p-2" // Add some padding for easier touch
+                >
+                  <MaterialCommunityIcons name="history" size={24} color="#fb923c" />
+                </TouchableOpacity>
+              </View>
               {pendingFeedbackLessons.length > 0 ? (
                 pendingFeedbackLessons.map(lesson => (
                   <LessonCard
                     key={`pending-${lesson.id}`}
                     lesson={lesson}
-                    onPressAction={() => handleGiveFeedback(lesson)} // This remains the same
+                    onPressAction={() => handleGiveFeedback(lesson)}
                   />
                 ))
               ) : (
                 <Text className="text-sm text-gray-500 mb-6 ml-1">No lessons awaiting feedback.</Text>
               )}
-            </>
+
+              {/* Progress Summary Section - Modified */}
+              <Text className="text-xl font-csemibold text-gray-700 mt-6 mb-3">Progress Summary</Text>
+              <View className="mb-6"> 
+                {/* Overall Skill Rating */}
+                <View className="mb-3">
+                  <Text className="text-base font-cmedium text-gray-800 mb-1">Overall Skill Rating (Feedback):</Text>
+                  <View className="flex-row items-center">
+                    <View className="w-4/5 bg-gray-200 rounded-full h-2.5 mr-2">
+                      <View className="bg-green-500 h-2.5 rounded-full" style={{ width: '70%' }}></View>
+                    </View>
+                    <Text className="text-sm font-csemibold text-green-600">70%</Text>
+                  </View>
+                  <Text className="text-xs text-gray-500 mt-0.5 ml-1">Based on 5 lessons with feedback.</Text>
+                </View>
+
+                {/* Key Areas for Improvement */}
+                <View className="mb-3">
+                  <Text className="text-base font-cmedium text-gray-800 mb-1">Key Areas for Improvement:</Text>
+                  <Text className="text-sm text-gray-600 ml-1">- Roundabout entry/exit (Avg: 2/5)</Text>
+                  <Text className="text-sm text-gray-600 ml-1">- Parallel parking (Avg: 2.5/5)</Text>
+                </View>
+
+                {/* Mock Test Performance */}
+                <View>
+                  <Text className="text-base font-cmedium text-gray-800 mb-1">Mock Test Performance:</Text>
+                  <Text className="text-sm text-gray-600 ml-1">- Latest: <Text className="font-csemibold">Passed (8 faults)</Text></Text>
+                  <Text className="text-sm text-gray-600 ml-1">- Previous: <Text className="font-csemibold">Failed (12 faults)</Text></Text>
+                </View>
+              </View>
+            </> 
           )}
         </View>
       </ScrollView>
@@ -212,8 +253,6 @@ const Dashboard = () => {
                   label="Location"
                   value={selectedLessonForModal.location || '-'}
                 />
-                {/* Add other lesson details here if available, e.g., instructor */}
-                {/* 
                 {selectedLessonForModal.instructorId && (
                   <DetailRow 
                     iconName="account-tie-outline" 
@@ -221,13 +260,20 @@ const Dashboard = () => {
                     value={selectedLessonForModal.instructorId} // Replace with actual instructor name if available
                   />
                 )}
-                */}
+                {selectedLessonForModal.status && (
+                  <DetailRow
+                    iconName="list-status"
+                    label="Status"
+                    value={selectedLessonForModal.status.charAt(0).toUpperCase() + selectedLessonForModal.status.slice(1)}
+                    valueColor={selectedLessonForModal.status === 'completed' ? 'text-green-600' : selectedLessonForModal.status === 'cancelled' ? 'text-red-600' : 'text-blue-600'}
+                  />
+                )}
               </ScrollView>
             </View>
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
