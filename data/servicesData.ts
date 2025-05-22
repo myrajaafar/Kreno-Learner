@@ -13,8 +13,8 @@ export interface Service {
   rawDate: Date; 
 }
 
-// Interface for Booked Lessons
-export interface BookedLesson {
+// Interface for  Lessons
+export interface Lesson {
   lessonId: string;
   title: string; // Could be the service type or a more specific lesson focus
   date: string; // Formatted date string
@@ -123,8 +123,8 @@ export const servicesData: Service[] = [
   },
 ];
 
-// New: Data for Booked Driving Lessons
-export const bookedLessonsData: BookedLesson[] = servicesData
+// New: Data for  Driving Lessons
+export const LessonsData: Lesson[] = servicesData
   .filter(service => service.type === 'Driving Lesson')
   .map(service => ({
     lessonId: service.id,

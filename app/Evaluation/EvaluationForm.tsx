@@ -101,7 +101,8 @@ const EvaluationForm = () => {
 
   const handleSubmitEvaluation = async () => {
     setIsSubmitting(true);
-    
+
+    // --- Start: Validation (remains the same) ---
     const unratedSkills = Object.values(skillRatings).some(rating => rating === '');
     if (unratedSkills) {
       Alert.alert('Incomplete Form', 'Please rate all skills using the icons.');
@@ -126,9 +127,12 @@ const EvaluationForm = () => {
       setIsSubmitting(false);
       return;
     }
+    // --- End: Validation ---
 
+    // Remove userId from here
     const evaluationData = {
       lessonId,
+      // userId: userId, // REMOVED
       skillRatings: skillRatings,
       instructorRatings: instructorRatings,
       overallLessonRating,
@@ -136,13 +140,40 @@ const EvaluationForm = () => {
       submittedAt: new Date().toISOString(),
     };
 
-    console.log('Submitting Evaluation:', evaluationData);
+    console.log('Submitting Evaluation (without userId):', evaluationData);
 
-    setTimeout(() => {
-        Alert.alert('Success (Simulated)', 'Evaluation submitted successfully!'); 
-        if (router.canGoBack()) router.back();
-        setIsSubmitting(false);
-    }, 1000);
+    try {
+      // Ensure this URL points to your PHP script
+      const response = await fetch('http://192.168.1.51/kreno-api/submit_evaluation.php', { // ADJUST URL AS NEEDED
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(evaluationData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Submission successful:', result);
+
+      if (result.success) {
+        Alert.alert('Success', result.message || 'Evaluation submitted successfully!');
+        if (router.canGoBack()) {
+          router.back();
+        }
+      } else {
+        Alert.alert('Submission Failed', result.message || 'Could not submit evaluation.');
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const StarRating = ({ rating, onRate }: { rating: number; onRate: (rate: number) => void }) => {

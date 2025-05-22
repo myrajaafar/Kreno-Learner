@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Sty
 import { router } from 'expo-router';
 import CustomHeader from '../../components/CustomHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { bookedLessons, BookedLesson } from '../../constants/BookedLessons'; // Adjust path
+import { lessons, Lesson } from '../../constants/Lessons'; // Adjust path
 import LessonCard from '../../components/LessonCard'; // Import the new component
 import { isFuture, isPast, parseISO, startOfDay, format } from 'date-fns'; // Added format
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // Added for DetailRow
@@ -48,20 +48,20 @@ const DetailRow: React.FC<{ iconName: React.ComponentProps<typeof MaterialCommun
 
 
 const Dashboard = () => {
-  const [upcomingLessons, setUpcomingLessons] = useState<BookedLesson[]>([]);
-  const [pendingEvaluationLessons, setPendingEvaluationLessons] = useState<BookedLesson[]>([]);
+  const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([]);
+  const [pendingEvaluationLessons, setPendingEvaluationLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLessonDetailModalVisible, setLessonDetailModalVisible] = useState(false); // Modal visibility
-  const [selectedLessonForModal, setSelectedLessonForModal] = useState<BookedLesson | null>(null); // Lesson for modal
+  const [selectedLessonForModal, setSelectedLessonForModal] = useState<Lesson | null>(null); // Lesson for modal
 
   useEffect(() => {
     // Simulate fetching and processing data
     const processLessons = () => {
       const today = startOfDay(new Date());
-      const upcoming: BookedLesson[] = [];
-      const pendingEvaluation: BookedLesson[] = [];
+      const upcoming: Lesson[] = [];
+      const pendingEvaluation: Lesson[] = [];
 
-      bookedLessons.forEach(lesson => {
+      lessons.forEach(lesson => {
         // Ensure date and startTime are valid before creating a Date object
         if (lesson.date && lesson.startTime) {
           const lessonDateTimeString = `${lesson.date}T${lesson.startTime}`;
@@ -70,7 +70,7 @@ const Dashboard = () => {
             if (lesson.status === 'cancelled') return; // Skip cancelled lessons
 
             if (isFuture(lessonDateTime) || lessonDateTime >= today) {
-              if (lesson.status === 'booked') { // Only show booked upcoming lessons
+              if (lesson.status === 'booked') { // Only show upcoming lessons
                 upcoming.push(lesson);
               }
             } else if (isPast(lessonDateTime) && lesson.status === 'completed' && !lesson.EvaluationGiven) {
@@ -107,7 +107,7 @@ const Dashboard = () => {
     processLessons();
   }, []);
 
-  const handleLessonDetails = (lesson: BookedLesson) => { // Changed to accept full lesson object
+  const handleLessonDetails = (lesson: Lesson) => { // Changed to accept full lesson object
     setSelectedLessonForModal(lesson);
     setLessonDetailModalVisible(true);
     // console.log('Show details for lesson:', lesson.id); // Keep for debugging if needed
@@ -118,7 +118,7 @@ const Dashboard = () => {
     setSelectedLessonForModal(null);
   };
 
-  const handleGiveEvaluation = (lesson: BookedLesson) => {
+  const handleGiveEvaluation = (lesson: Lesson) => {
     router.push({
       pathname: '/Evaluation/EvaluationForm',
       params: { lessonId: lesson.id, lessonTitle: lesson.title }
@@ -177,7 +177,7 @@ const Dashboard = () => {
 
               {/* Progress Summary Section - Modified */}
               <Text className="text-xl font-csemibold text-gray-700 mt-6 mb-3">Progress Summary</Text>
-              <View className="mb-6"> 
+              <View className="mb-6 p-4 bg-gray-100 rounded-lg"> 
                 {/* Overall Skill Rating */}
                 <View className="mb-3">
                   <Text className="text-base font-cmedium text-gray-800 mb-1">Overall Skill Rating (Evaluation):</Text>
@@ -217,7 +217,7 @@ const Dashboard = () => {
           visible={isLessonDetailModalVisible}
           onRequestClose={handleCloseLessonModal}
         >
-          <View style={styles.centeredView}>
+          <View className='flex-1 justify-center items-center bg-[rgba(0,0,0,0.55)]'>
             <View className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md relative">
               {/* Header */}
               <View className="flex-row justify-between items-center pb-3 mb-4 border-b border-gray-200">
@@ -253,21 +253,6 @@ const Dashboard = () => {
                   label="Location"
                   value={selectedLessonForModal.location || '-'}
                 />
-                {selectedLessonForModal.instructorId && (
-                  <DetailRow 
-                    iconName="account-tie-outline" 
-                    label="Instructor" 
-                    value={selectedLessonForModal.instructorId} // Replace with actual instructor name if available
-                  />
-                )}
-                {selectedLessonForModal.status && (
-                  <DetailRow
-                    iconName="list-status"
-                    label="Status"
-                    value={selectedLessonForModal.status.charAt(0).toUpperCase() + selectedLessonForModal.status.slice(1)}
-                    valueColor={selectedLessonForModal.status === 'completed' ? 'text-green-600' : selectedLessonForModal.status === 'cancelled' ? 'text-red-600' : 'text-blue-600'}
-                  />
-                )}
               </ScrollView>
             </View>
           </View>
@@ -276,15 +261,5 @@ const Dashboard = () => {
     </View>
   );
 };
-
-// Styles for the modal (similar to calendar.tsx)
-const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)', // Semi-transparent background
-  },
-});
 
 export default Dashboard;

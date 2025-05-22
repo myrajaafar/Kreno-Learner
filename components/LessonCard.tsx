@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { BookedLesson } from '../constants/BookedLessons'; // Adjust path as needed
+import { Lesson } from '../constants/Lessons'; // Adjust path as needed
 import { format, parseISO } from 'date-fns'; // Added parseISO
 
 interface LessonCardProps {
-  lesson: BookedLesson;
+  lesson: Lesson;
   // isUpcoming prop might still be useful if you want to subtly style the card differently,
   // but the explicit text button is removed.
   // isUpcoming: boolean; 

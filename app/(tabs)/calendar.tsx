@@ -7,7 +7,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 //import { BlurView } from '@react-native-community/blur';
 import { Stack, useFocusEffect } from 'expo-router';
 import CustomHeader from '../../components/CustomHeader';
-import { BookedLesson, bookedLessons } from '../../constants/BookedLessons';
+import { Lesson, lessons } from '../../constants/Lessons';
 
 const DayDateComponent = ({ date, isToday, onPress, isSelected }) => {
   const dayName = format(date, 'E');
@@ -84,7 +84,7 @@ const CalendarScreen = () => {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLessonDetailModalVisible, setLessonDetailModalVisible] = useState(false); // New state for lesson detail modal
-  const [selectedLessonForModal, setSelectedLessonForModal] = useState<BookedLesson | null>(null); // New state for selected lesson data
+  const [selectedLessonForModal, setSelectedLessonForModal] = useState<Lesson | null>(null); // New state for selected lesson data
 
   useFocusEffect(
     React.useCallback(() => {
@@ -106,7 +106,7 @@ const CalendarScreen = () => {
 
   const lessonsForSelectedDate = useMemo(() => {
     const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    const filteredLessons = bookedLessons.filter(lesson => lesson.date === dateKey);
+    const filteredLessons = lessons.filter(lesson => lesson.date === dateKey);
     return filteredLessons;
   }, [selectedDate]);
 
@@ -169,7 +169,7 @@ const CalendarScreen = () => {
     setCurrentDate(prev => addDays(prev, 7));
   };
 
-  const handleTimeSlotPress = (timeSlot: string, lesson?: BookedLesson) => {
+  const handleTimeSlotPress = (timeSlot: string, lesson?: Lesson) => {
     if (lesson) {
       setSelectedLessonForModal(lesson);
       setLessonDetailModalVisible(true);
@@ -317,7 +317,7 @@ const CalendarScreen = () => {
 
               const isPastSlot = isBefore(slotDateTime, now);
 
-              let bookedLessonForSlot: BookedLesson | undefined = undefined;
+              let LessonForSlot: Lesson | undefined = undefined;
               const slotStartMinutes = currentSlotHour * 60 + currentSlotMinute;
               const slotEndMinutes = slotStartMinutes + 30;
 
@@ -339,7 +339,7 @@ const CalendarScreen = () => {
                   lessonStartMinutes < slotEndMinutes &&
                   lessonEndMinutes > slotStartMinutes
                 ) {
-                  bookedLessonForSlot = lesson;
+                  LessonForSlot = lesson;
                   break;
                 }
               }
@@ -347,14 +347,14 @@ const CalendarScreen = () => {
               let slotStyle = 'bg-transparent';
               let slotContent = null;
 
-              if (bookedLessonForSlot) {
+              if (LessonForSlot) {
                 slotStyle = `bg-[#E1BEE8] opacity-80`;
                 slotContent = (
                   <Text
                     className="text-[#673172] font-cbold text-center"
                     numberOfLines={2}
                   >
-                    {bookedLessonForSlot.title}
+                    {LessonForSlot.title}
                   </Text>
                 );
               } else if (isSlotAvailable) {
@@ -372,9 +372,9 @@ const CalendarScreen = () => {
                 <TouchableOpacity
                   key={`grid-slot-${time}`}
                   className={`flex-row border-b border-slate-200 h-16 items-center justify-center ${slotStyle}`}
-                  onPress={() => handleTimeSlotPress(time, bookedLessonForSlot)}
+                  onPress={() => handleTimeSlotPress(time, LessonForSlot)}
                   disabled={
-                    !bookedLessonForSlot &&
+                    !LessonForSlot &&
                     isPastSlot &&
                     !isSlotAvailable
                   }

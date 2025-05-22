@@ -1,6 +1,6 @@
 import { format, addDays, subDays, setHours, setMinutes, addMinutes } from 'date-fns';
 
-export interface BookedLesson {
+export interface Lesson {
   id: string;
   date: string; // YYYY-MM-DD
   startTime: string; // HH:MM
@@ -26,7 +26,7 @@ const generateTime = (date: Date, hour: number, minute: number, durationMinutes:
   };
 };
 
-export const bookedLessons: BookedLesson[] = [
+export const lessons: Lesson[] = [
   // --- Past Lessons ---
   {
     id: 'L001',
