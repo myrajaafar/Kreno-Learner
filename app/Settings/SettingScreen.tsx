@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomHeader from '../../components/CustomHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -18,7 +17,7 @@ const SettingScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <CustomHeader />
       <View className="pt-3">
         <Text className="px-4 text-2xl font-cbold mb-4">Settings</Text>
@@ -44,7 +43,7 @@ const SettingScreen = () => {
           <MaterialCommunityIcons name="logout" size={24} color="#f97316" />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

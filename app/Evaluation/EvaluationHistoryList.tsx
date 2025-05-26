@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native'; // Added RefreshControl
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Modal } from 'react-native';
 import { Stack, router } from 'expo-router';
-// import { SafeAreaView } from 'react-native-safe-area-context'; // SafeAreaView not used directly here, CustomHeader handles it
-import { lessons, Lesson } from '../../constants/Lessons';
 import LessonCard from '../../components/LessonCard';
-import { isPast, parseISO, startOfDay } from 'date-fns';
+import { isPast, parseISO, startOfDay, differenceInDays, format } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomHeader from '../../components/CustomHeader';
+import { useAuth } from '../../context/AuthContext';
+import { useLessonData, Lesson } from '../../context/LessonContext'; // Import the context
 
 // Define an interface for the structure of a single evaluation object from the DB
 interface DBEvaluation {
@@ -15,50 +15,224 @@ interface DBEvaluation {
   user_id: string | null;
   overall_lesson_rating: number;
   evaluation_comment: string | null;
-  skill_ratings_json: string; // Will be a JSON string
-  instructor_ratings_json: string; // Will be a JSON string
+  skill_ratings: Record<string, string>;
   submitted_at: string;
+  lesson_title?: string;
+  lesson_date?: string;
+  lesson_start_time?: string;
+  skill_name?: string;
 }
 
+// Add this interface near the top with other interfaces
+interface ApiSubSkill {
+  sub_skill_id: string;
+  skill_id: string;
+  sub_skill_name: string;
+  subskill_code?: string;
+  description: string | null;
+}
+
+const DetailRow: React.FC<{ 
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; 
+  label: string; 
+  value: string; 
+  valueColor?: string; 
+  isMultiline?: boolean 
+}> = ({ iconName, label, value, valueColor = "text-gray-600", isMultiline = false }) => (
+  <View className="mb-3">
+    <View className="flex-row items-start">
+      <MaterialCommunityIcons name={iconName} size={20} color="#f97316" className="mr-2 mt-0.5" />
+      <Text className="text-base font-csemibold text-gray-700 flex-shrink mr-1">{label}:</Text>
+    </View>
+    <Text className={`text-sm ${valueColor} ml-7 ${isMultiline ? 'mt-1' : 'mt-0'}`}>{value}</Text>
+  </View>
+);
+
+const EvaluationCard: React.FC<{ evaluation: DBEvaluation; onPress: () => void; lessons: Lesson[] }> = ({ evaluation, onPress, lessons }) => {
+  const renderStars = (rating: number) => {
+    return (
+      <View className="flex-row">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <MaterialCommunityIcons
+            key={star}
+            name={star <= rating ? 'star' : 'star-outline'}
+            size={14}
+            color={star <= rating ? '#FFD700' : '#CBD5E1'}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const formatDisplayDate = (dateStr: string) => {
+    try {
+      return format(parseISO(dateStr), 'MMM d, yyyy');
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const isEditable = () => {
+    try {
+      const submissionDate = new Date(evaluation.submitted_at);
+      const daysDifference = differenceInDays(new Date(), submissionDate);
+      return daysDifference < 3;
+    } catch {
+      return false;
+    }
+  };
+
+  // Get lesson details from context
+  const lesson = lessons.find(l => l.id === evaluation.lesson_id);
+  const lessonTitle = evaluation.lesson_title || lesson?.title || `Lesson ${evaluation.lesson_id}`;
+  const lessonDate = evaluation.lesson_date || lesson?.date;
+  const lessonTime = evaluation.lesson_start_time || lesson?.startTime;
+  const skillName = evaluation.skill_name || lesson?.skillName;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm"
+    >
+      {/* Header */}
+      <View className="flex-row justify-between items-start mb-2">
+        <View className="flex-1 mr-2">
+          <Text className="text-lg font-csemibold text-gray-800" numberOfLines={1}>
+            {lessonTitle}
+          </Text>
+          {skillName && (
+            <Text className="text-sm text-gray-600 mt-0.5">
+              {skillName}
+            </Text>
+          )}
+        </View>
+        {isEditable() && (
+          <View className="bg-blue-100 px-2 py-1 rounded">
+            <Text className="text-xs text-blue-600 font-cmedium">Editable</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Date and Rating Row */}
+      <View className="flex-row justify-between items-center mb-2">
+        <View className="flex-row items-center">
+          <MaterialCommunityIcons name="calendar-outline" size={16} color="#6b7280" />
+          <Text className="text-sm text-gray-600 ml-1">
+            {lessonDate ? formatDisplayDate(lessonDate) : 'Date N/A'}
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <Text className="text-sm text-gray-600 mr-2">Overall:</Text>
+          {renderStars(evaluation.overall_lesson_rating)}
+        </View>
+      </View>
+
+      {/* Time and Submitted Date */}
+      <View className="flex-row justify-between items-center">
+        <View className="flex-row items-center">
+          <MaterialCommunityIcons name="clock-outline" size={16} color="#6b7280" />
+          <Text className="text-sm text-gray-600 ml-1">
+            {lessonTime && lessonTime !== 'N/A' ? lessonTime : 'Time N/A'}
+          </Text>
+        </View>
+        <Text className="text-xs text-gray-500">
+          Submitted: {formatDisplayDate(evaluation.submitted_at)}
+        </Text>
+      </View>
+
+      {/* Comment Preview */}
+      {evaluation.evaluation_comment && (
+        <View className="mt-2 pt-2 border-t border-gray-100">
+          <Text className="text-sm text-gray-600" numberOfLines={2}>
+            "{evaluation.evaluation_comment}"
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
 const EvaluationHistoryList = () => {
+  const { currentUser } = useAuth();
+  const { lessons: allLessonsFromContext, isLoading: lessonsLoading, fetchCoreData } = useLessonData();
   const [pendingEvaluationLessons, setPendingEvaluationLessons] = useState<Lesson[]>([]);
-  // const [completedEvaluationLessons, setCompletedEvaluationLessons] = useState<Lesson[]>([]); // This will be replaced by dbEvaluations
-  const [dbEvaluations, setDbEvaluations] = useState<DBEvaluation[]>([]); // State for fetched evaluations
-  const [isLoading, setIsLoading] = useState(true); // For initial load
-  const [isRefreshing, setIsRefreshing] = useState(false); // For pull-to-refresh
-  const [fetchError, setFetchError] = useState<string | null>(null); // State for fetch errors
+  const [dbEvaluations, setDbEvaluations] = useState<DBEvaluation[]>([]);
+  const [subSkillsMap, setSubSkillsMap] = useState<Record<string, string>>({}); // Map sub-skill ID to name
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<DBEvaluation | null>(null);
 
-  const processLocalLessonsForPending = useCallback(() => {
-    // This part remains for "Pending Evaluations" based on local data
-    const today = startOfDay(new Date());
+  // Function to fetch all sub-skills and create a mapping
+  const fetchSubSkillsMapping = useCallback(async () => {
+    try {
+      const response = await fetch('http://192.168.1.51/kreno-api/sub_skills_api.php');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      if (result.success && Array.isArray(result.sub_skills)) {
+        const mapping: Record<string, string> = {};
+        result.sub_skills.forEach((subSkill: ApiSubSkill) => {
+          mapping[subSkill.sub_skill_id] = subSkill.sub_skill_name;
+          // Also map by subskill_code if it exists (for evaluations that use codes as keys)
+          if (subSkill.subskill_code) {
+            mapping[subSkill.subskill_code] = subSkill.sub_skill_name;
+          }
+        });
+        setSubSkillsMap(mapping);
+      }
+    } catch (error) {
+      console.error('Error fetching sub-skills mapping:', error);
+    }
+  }, []);
+
+  // Remove fetchAndProcessApiLessons since we're using LessonContext
+  const processPendingEvaluations = useCallback(() => {
     const pending: Lesson[] = [];
-
-    lessons.forEach(lesson => {
-      if (lesson.date && lesson.startTime) {
-        const lessonDateTimeString = `${lesson.date}T${lesson.startTime}`;
+    allLessonsFromContext.forEach(lesson => {
+      if (lesson.date && lesson.startTime && lesson.startTime !== 'N/A' && !lesson.EvaluationGiven) {
         try {
+          const lessonDateTimeString = `${lesson.date}T${lesson.startTime}:00`;
           const lessonDateTime = parseISO(lessonDateTimeString);
-          if (lesson.status === 'completed' && !lesson.EvaluationGiven && isPast(lessonDateTime)) {
+
+          // A lesson is pending evaluation if its time has passed and EvaluationGiven is false
+          if (isPast(lessonDateTime)) {
             pending.push(lesson);
           }
         } catch (error) {
-          console.warn(`Invalid date format for lesson ID ${lesson.id} in processLocalLessonsForPending: ${lessonDateTimeString}`, error);
+          console.warn(`Invalid date format for lesson ID ${lesson.id}: ${lesson.date}T${lesson.startTime}`, error);
         }
       }
     });
+
     pending.sort((a, b) => {
-      const dateTimeA = parseISO(`${a.date}T${a.startTime}`);
-      const dateTimeB = parseISO(`${b.date}T${b.startTime}`);
-      return dateTimeB.getTime() - dateTimeA.getTime();
+      try {
+        const dateTimeA = parseISO(`${a.date}T${a.startTime}:00`);
+        const dateTimeB = parseISO(`${b.date}T${b.startTime}:00`);
+        return dateTimeB.getTime() - dateTimeA.getTime(); // Most recent past lessons first
+      } catch {
+        return 0;
+      }
     });
     setPendingEvaluationLessons(pending);
-  }, []); // No dependencies, as Lessons is a static import
+  }, [allLessonsFromContext]);
+
+  // Update processPendingEvaluations when lessons change
+  useEffect(() => {
+    processPendingEvaluations();
+  }, [processPendingEvaluations]);
 
   const fetchEvaluationHistory = useCallback(async () => {
+    if (!currentUser?.userId) {
+      setFetchError("User not authenticated. Cannot fetch evaluation history.");
+      setDbEvaluations([]);
+      return;
+    }
     setFetchError(null);
     try {
-      // Ensure this URL points to your PHP script that handles GET requests
-      const response = await fetch('http://192.168.1.51/kreno-api/get_evaluations.php', {
+      const response = await fetch(`http://192.168.1.51/kreno-api/evaluations_api.php?userId=${currentUser.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -71,28 +245,36 @@ const EvaluationHistoryList = () => {
       }
 
       const result = await response.json();
-      console.log('Fetched DB evaluations:', result);
 
       if (result.success && Array.isArray(result.evaluations)) {
         setDbEvaluations(result.evaluations);
       } else {
-        throw new Error(result.message || 'Failed to fetch evaluation history data.');
+        if (result.success && result.count === 0) {
+          setDbEvaluations([]);
+        } else {
+          throw new Error(result.message || 'Failed to fetch evaluation history data or data is not in expected format.');
+        }
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred while fetching history.';
       console.error('Fetch evaluation history error:', errorMessage);
       setFetchError(errorMessage);
-      // Alert.alert('Error', `Could not fetch evaluation history: ${errorMessage}`); // Optional: show alert
     }
-  }, []); // No dependencies, fetch URL is static
+  }, [currentUser?.userId]);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
-    processLocalLessonsForPending(); // Process local data for pending
-    await fetchEvaluationHistory(); // Fetch history from DB
+    setFetchError(null);
+    
+    // Use fetchCoreData from LessonContext instead of local fetch
+    await Promise.all([
+      fetchCoreData(isRefresh, currentUser?.userId),
+      fetchEvaluationHistory(),
+      fetchSubSkillsMapping() // Add this to load sub-skills mapping
+    ]);
+    
     if (!isRefresh) setIsLoading(false);
-  }, [processLocalLessonsForPending, fetchEvaluationHistory]);
-
+  }, [fetchCoreData, fetchEvaluationHistory, fetchSubSkillsMapping, currentUser?.userId]);
 
   useEffect(() => {
     loadData();
@@ -100,110 +282,250 @@ const EvaluationHistoryList = () => {
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await loadData(true); // Pass true to indicate it's a refresh
+    await loadData(true);
     setIsRefreshing(false);
   }, [loadData]);
 
+  const getLessonTitle = (lessonId: string): string => {
+    const foundLesson = allLessonsFromContext.find(l => l.id === lessonId);
+    return foundLesson?.title || `Lesson ID: ${lessonId}`;
+  };
 
-  const handleGiveEvaluation = (lesson: Lesson) => {
+  const isEditableEvaluation = (submittedAt: string): boolean => {
+    try {
+      const submissionDate = new Date(submittedAt);
+      const daysDifference = differenceInDays(new Date(), submissionDate);
+      return daysDifference < 3;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCardPress = (evaluation: DBEvaluation) => {
+    setSelectedEvaluation(evaluation);
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSelectedEvaluation(null);
+  };
+
+  const handleEditEvaluation = (evaluation: DBEvaluation) => {
+    setIsModalVisible(false);
     router.push({
       pathname: '/Evaluation/EvaluationForm',
-      params: { lessonId: lesson.id, lessonTitle: lesson.title }
+      params: {
+        lessonId: evaluation.lesson_id,
+        lessonTitle: evaluation.lesson_title,
+        editMode: 'true',
+        evaluationId: evaluation.evaluation_id.toString(),
+      }
     });
   };
 
-  const handleViewEvaluation = (evaluation: DBEvaluation) => {
-    const lessonTitle = lessons.find(l => l.id === evaluation.lesson_id)?.title || 'Unknown Lesson';
-    console.log("Viewing DB Evaluation for lesson ID:", evaluation.lesson_id, evaluation);
-    Alert.alert(
-      `Evaluation for: ${lessonTitle}`,
-      `Rating: ${evaluation.overall_lesson_rating}/5\nComment: ${evaluation.evaluation_comment || 'N/A'}\nSubmitted: ${new Date(evaluation.submitted_at).toLocaleDateString()}`
+  const renderStars = (rating: number) => {
+    return (
+      <View className="flex-row">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <MaterialCommunityIcons
+            key={star}
+            name={star <= rating ? 'star' : 'star-outline'}
+            size={16}
+            color={star <= rating ? '#FFD700' : '#CBD5E1'}
+          />
+        ))}
+      </View>
     );
   };
 
-  const getLessonTitle = (lessonId: string) => {
-    return lessons.find(l => l.id === lessonId)?.title || `Lesson ID: ${lessonId}`;
+  const formatDisplayDate = (dateStr: string) => {
+    try {
+      return format(parseISO(dateStr), 'EEEE, MMMM d, yyyy');
+    } catch {
+      return dateStr;
+    }
   };
 
-  return (
-    <View className="flex-1 bg-slate-50">
-      <Stack.Screen options={{ title: "Evaluation", headerShown: false }} />
-      <CustomHeader/>
+  if (isLoading || lessonsLoading) {
+    return (
+      <View className="flex-1 bg-white">
+        <CustomHeader showSettingsIcon={false} />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#fb923c" />
+          <Text className="mt-2 text-gray-600">Loading evaluations...</Text>
+        </View>
+      </View>
+    );
+  }
 
+  return (
+    <View className="flex-1 bg-gray-50">
+      <CustomHeader showSettingsIcon={false} />
+      
       <ScrollView 
         className="flex-1"
-        refreshControl={ // Add RefreshControl here
+        refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={["#fb923c"]} // Android spinner color
-            tintColor={"#fb923c"} // iOS spinner color
+            colors={["#fb923c"]}
+            tintColor={"#fb923c"}
           />
         }
       >
-        <Text className="text-2xl px-4 mt-3 font-cbold mb-5 text-gray-800">My Evaluations</Text>
-        {isLoading && !isRefreshing ? ( // Show initial loader only if not refreshing
-          <ActivityIndicator size="large" color="#fb923c" className="mt-20" />
-        ) : (
-          <>
-            {/* Pending Evaluation Section (uses local data) */}
-            <View className="px-4 pt-5 pb-3">
-              <Text className="text-xl font-csemibold text-gray-700 mb-3">Pending Evaluation</Text>
-              {pendingEvaluationLessons.length > 0 ? (
-                pendingEvaluationLessons.map(lesson => (
-                  <LessonCard
-                    key={`pending-${lesson.id}`}
-                    lesson={lesson}
-                    onPressAction={() => handleGiveEvaluation(lesson)}
-                  />
-                ))
-              ) : (
-                <View className="bg-white p-4 rounded-lg shadow items-center">
-                  <MaterialCommunityIcons name="check-circle-outline" size={30} color="#4ade80" />
-                  <Text className="text-sm text-gray-500 mt-2">No lessons awaiting your Evaluation. Great job!</Text>
-                </View>
-              )}
+        <View className="pt-3 px-4 pb-5">
+          <Text className="text-2xl font-cbold mb-5 text-gray-800">Evaluation History</Text>
+          
+          {dbEvaluations.length === 0 ? (
+            <View className="items-center justify-center p-8 bg-white rounded-lg">
+              <MaterialCommunityIcons name="clipboard-text-outline" size={48} color="#9ca3af" />
+              <Text className="text-center text-gray-500 mt-4 text-lg">No evaluations found</Text>
+              <Text className="text-center text-gray-400 mt-1">Complete some lessons to see your evaluations here</Text>
             </View>
-
-            {/* Evaluation History Section (uses data from DB) */}
-            <View className="px-4 pt-5 pb-5 border-t border-slate-200 mt-3">
-              <Text className="text-xl font-csemibold text-gray-700 mb-3">Evaluation History</Text>
-              {fetchError && (
-                <View className="bg-red-100 p-3 rounded-lg items-center mb-3">
-                    <MaterialCommunityIcons name="alert-circle-outline" size={30} color="#ef4444" />
-                    <Text className="text-sm text-red-600 mt-2 text-center">Could not load history: {fetchError}</Text>
-                </View>
-              )}
-              {!fetchError && dbEvaluations.length > 0 ? (
-                dbEvaluations.map(evaluation => (
-                  <TouchableOpacity
-                    key={`history-db-${evaluation.evaluation_id}`}
-                    className="bg-white p-4 rounded-lg shadow mb-3"
-                    onPress={() => handleViewEvaluation(evaluation)}
-                  >
-                    <Text className="text-base font-csemibold text-blue-600">{getLessonTitle(evaluation.lesson_id)}</Text>
-                    <Text className="text-xs text-gray-500 mb-1">Evaluated: {new Date(evaluation.submitted_at).toLocaleDateString()}</Text>
-                    <Text className="text-sm text-gray-700">Overall Rating: {evaluation.overall_lesson_rating} / 5</Text>
-                    {evaluation.evaluation_comment && <Text className="text-sm text-gray-600 mt-1 italic">"{evaluation.evaluation_comment}"</Text>}
-                    <View className="mt-2 pt-2 border-t border-slate-100">
-                        <Text className="text-xs text-blue-500 text-right">View Details</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                !fetchError && (
-                  <View className="bg-white p-4 rounded-lg shadow items-center">
-                      <MaterialCommunityIcons name="history" size={30} color="#60a5fa" />
-                      <Text className="text-sm text-gray-500 mt-2">No Evaluation has been submitted yet.</Text>
-                  </View>
-                )
-              )}
-            </View>
-          </>
-        )}
+          ) : (
+            dbEvaluations.map((evaluation) => (
+              <EvaluationCard
+                key={evaluation.evaluation_id}
+                evaluation={evaluation}
+                lessons={allLessonsFromContext}
+                onPress={() => handleCardPress(evaluation)}
+              />
+            ))
+          )}
+        </View>
       </ScrollView>
+
+      {/* Evaluation Detail Modal */}
+      {selectedEvaluation && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={handleCloseModal}
+        >
+          <View className='flex-1 justify-center items-center bg-[rgba(0,0,0,0.55)]'>
+            <View className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md relative">
+              <View className="flex-row justify-between items-center pb-3 mb-4 border-b border-gray-200">
+                <View className="flex-1 mr-2">
+                  <Text className="text-xl font-cbold text-gray-800" numberOfLines={1}>
+                    {selectedEvaluation.lesson_title || 
+                     allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.title || 
+                     `Lesson ${selectedEvaluation.lesson_id}`}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={handleCloseModal} className="p-1 -mr-2 -mt-2">
+                  <MaterialCommunityIcons name="close-circle-outline" size={28} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+                {/* Lesson Details - use context data as fallback */}
+                {(selectedEvaluation.lesson_date || allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.date) && (
+                  <DetailRow
+                    iconName="calendar-blank-outline"
+                    label="Lesson Date"
+                    value={formatDisplayDate(
+                      selectedEvaluation.lesson_date || 
+                      allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.date || ''
+                    )}
+                  />
+                )}
+                {(selectedEvaluation.lesson_start_time || allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.startTime) && (
+                  <DetailRow
+                    iconName="clock-outline"
+                    label="Lesson Time"
+                    value={selectedEvaluation.lesson_start_time || 
+                           allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.startTime || 'N/A'}
+                  />
+                )}
+                {(selectedEvaluation.skill_name || allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.skillName) && (
+                  <DetailRow
+                    iconName="lightbulb-on-outline"
+                    label="Skill Focus"
+                    value={selectedEvaluation.skill_name || 
+                           allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.skillName || ''}
+                  />
+                )}
+
+                {/* Evaluation Details */}
+                <DetailRow
+                  iconName="calendar-check-outline"
+                  label="Submitted"
+                  value={formatDisplayDate(selectedEvaluation.submitted_at)}
+                />
+
+                <View className="mb-3">
+                  <View className="flex-row items-start">
+                    <MaterialCommunityIcons name="star-outline" size={20} color="#f97316" className="mr-2 mt-0.5" />
+                    <Text className="text-base font-csemibold text-gray-700 flex-shrink mr-1">Overall Rating:</Text>
+                  </View>
+                  <View className="ml-7">
+                    {renderStars(selectedEvaluation.overall_lesson_rating)}
+                  </View>
+                </View>
+
+                {selectedEvaluation.evaluation_comment && (
+                  <DetailRow
+                    iconName="comment-text-outline"
+                    label="Comments"
+                    value={selectedEvaluation.evaluation_comment}
+                    isMultiline={true}
+                  />
+                )}
+
+                {/* Sub-skill Ratings - Updated to show names instead of IDs */}
+                {Object.keys(selectedEvaluation.skill_ratings).length > 0 && (
+                  <View className="mb-3">
+                    <View className="flex-row items-start mb-2">
+                      <MaterialCommunityIcons name="format-list-checks" size={20} color="#f97316" className="mr-2 mt-0.5" />
+                      <Text className="text-base font-csemibold text-gray-700">Sub-skill Ratings:</Text>
+                    </View>
+                    <View className="ml-7">
+                      {Object.entries(selectedEvaluation.skill_ratings).map(([skillId, rating]) => {
+                        // Get the sub-skill name from the mapping, fallback to ID if not found
+                        const skillName = subSkillsMap[skillId] || skillId;
+                        return (
+                          <View key={skillId} className="flex-row justify-between items-center mb-1 py-1">
+                            <Text className="text-sm text-gray-600 flex-1 mr-2">{skillName}:</Text>
+                            <Text className="text-sm text-gray-700 font-cmedium">{rating}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Edit button and info */}
+                {isEditableEvaluation(selectedEvaluation.submitted_at) ? (
+                  <View className="mt-4 pt-4 border-t border-gray-200">
+                    <TouchableOpacity
+                      onPress={() => handleEditEvaluation(selectedEvaluation)}
+                      className="bg-blue-500 px-4 py-3 rounded-lg flex-row items-center justify-center"
+                    >
+                      <MaterialCommunityIcons name="pencil" size={18} color="white" />
+                      <Text className="text-white font-cmedium ml-2">Edit Evaluation</Text>
+                    </TouchableOpacity>
+                    <Text className="text-xs text-blue-600 mt-2 text-center">
+                      ⏰ Can be edited for {3 - differenceInDays(new Date(), new Date(selectedEvaluation.submitted_at))} more day(s)
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="mt-4 pt-4 border-t border-gray-200">
+                    <View className="bg-gray-100 px-4 py-3 rounded-lg">
+                      <Text className="text-gray-500 text-center text-sm">
+                        Edit period expired (more than 3 days old)
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
-}
+};
 
 export default EvaluationHistoryList;

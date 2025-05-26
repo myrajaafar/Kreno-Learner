@@ -1,5 +1,8 @@
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { AuthProvider } from '../context/AuthContext';
+import { LessonProvider } from '../context/LessonContext';
+import { AvailabilityProvider } from '../context/AvailabilityContext';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -10,9 +13,16 @@ export default function RootLayout() {
     'Comfortaa-Bold': require('../assets/fonts/Comfortaa-Bold.ttf'),
   });
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)"/>
-    </Stack>
+    <AuthProvider>
+      <LessonProvider>
+        <AvailabilityProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </AvailabilityProvider>
+      </LessonProvider>
+
+    </AuthProvider>
   );
 }

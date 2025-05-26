@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
-import { Stack, useLocalSearchParams, router } from 'expo-router'; // Assuming Expo Router for navigation and params
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, router } from 'expo-router';
+import { useAuth } from '../../context/AuthContext';
 
-// Define the structure for a question and its options
 interface Option {
   id: string;
   text: string;
@@ -14,110 +13,187 @@ interface Question {
   questionText: string;
   options: Option[];
   correctOptionId: string;
-  category: string; // To ensure questions match the category
+  category: string;
 }
 
-// Placeholder for AI-generated questions
-// In a real app, you would fetch this from your backend/AI service
-const fetchAIQuestions = async (category: string, count: number = 15): Promise<Question[]> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Example placeholder questions - REPLACE WITH ACTUAL AI INTEGRATION
-  const placeholderQuestions: Question[] = Array.from({ length: count }, (_, i) => ({
-    id: `${category}-q${i + 1}`,
-    category: category,
-    questionText: `This is AI-generated question ${i + 1} for the category "${category}". What is the correct answer?`,
-    options: [
-      { id: 'a', text: `Option A for Q${i + 1}` },
-      { id: 'b', text: `Option B for Q${i + 1}` },
-      { id: 'c', text: `Option C for Q${i + 1}` },
-      { id: 'd', text: `Option D for Q${i + 1}` },
-    ],
-    correctOptionId: 'b', // Example: Option B is always correct for placeholders
-  }));
-  return placeholderQuestions;
+const fetchAIQuestions = async (category: string, userId?: string): Promise<Question[]> => {
+  let response, data;
+  if (category.toLowerCase() === 'general') {
+    // Use the weak spots API for General
+    response = await fetch('http://192.168.1.51/kreno-api/generate_weak_spots_api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, limit: 2 }),
+    });
+    data = await response.json();
+    console.log('Weak Spots API response:', data);
+    if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+      return data.questions.map((q: any, idx: number) => ({
+        id: `ai-q${idx + 1}`,
+        questionText: q.question,
+        options: q.options.map((text: string, i: number) => ({ id: String.fromCharCode(97 + i), text })),
+        correctOptionId: String.fromCharCode(97 + q.options.indexOf(q.answer)),
+        category: q.category || 'General',
+      }));
+    }
+    throw new Error(data.message || 'Failed to fetch weak spot questions');
+  } else {
+    // Use the normal AI questions API for specific categories
+    response = await fetch('http://192.168.1.51/kreno-api/generate_questions_api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, count: 15 }),
+    });
+    data = await response.json();
+    console.log('AI Questions API response:', data);
+    if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
+      return data.questions.map((q: any, idx: number) => ({
+        id: `ai-q${idx + 1}`,
+        questionText: q.question,
+        options: q.options.map((text: string, i: number) => ({ id: String.fromCharCode(97 + i), text })),
+        correctOptionId: String.fromCharCode(97 + q.options.indexOf(q.answer)),
+        category,
+      }));
+    }
+    throw new Error(data.message || 'Failed to fetch AI questions');
+  }
 };
 
+const saveTestResult = async ({
+  userId,
+  category,
+  questions,
+  score,
+  takenAt,
+}: {
+  userId: string;
+  category: string;
+  questions: any[];
+  score: number;
+  takenAt: string;
+}) => {
+  await fetch('http://192.168.1.51/kreno-api/save_test_result_api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, category, questions, score, takenAt }),
+  });
+};
+
+const TOTAL_QUESTIONS = 15;
+
 const TheoryTestScreen = () => {
-  const { category } = useLocalSearchParams<{ category: string }>(); // Get category from navigation params
+  const { category } = useLocalSearchParams<{ category: string }>();
+  const { currentUser } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [questionHistory, setQuestionHistory] = useState<any[]>([]);
   const [score, setScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch all questions on mount
   useEffect(() => {
     if (category) {
       setIsLoading(true);
-      fetchAIQuestions(category)
+      fetchAIQuestions(category, currentUser?.userId)
         .then(fetchedQuestions => {
           setQuestions(fetchedQuestions);
           setIsLoading(false);
         })
-        .catch(error => {
-          console.error("Failed to fetch questions:", error);
+        .catch(() => {
+          Alert.alert('Error', 'Could not load questions.');
           setIsLoading(false);
-          Alert.alert("Error", "Could not load questions. Please try again.");
           if (router.canGoBack()) router.back();
         });
-    } else {
-      Alert.alert("Error", "No category selected.");
-      if (router.canGoBack()) router.back();
     }
-  }, [category]);
+  }, [category, currentUser?.userId]);
 
-  const handleOptionSelect = (optionId: string) => {
-    setSelectedOptionId(optionId);
-  };
+  const handleNextQuestion = async () => {
+    if (!questions[currentQuestionIndex] || !selectedOptionId) return;
 
-  const navigateToResults = () => {
-    router.replace({
-      pathname: '/TheoryTesting/TestResult',
-      params: {
-        score: score.toString(),
-        totalQuestions: questions.length.toString(),
-        category: category || "Unknown Category"
-      }
-    });
-  };
+    // Save answer to history
+    const currentQuestion = questions[currentQuestionIndex];
+    const isCorrect = selectedOptionId === currentQuestion.correctOptionId;
+    const updatedHistory = [
+      ...questionHistory,
+      {
+        ...currentQuestion,
+        userAnswer: selectedOptionId,
+        isCorrect,
+      },
+    ];
+    setQuestionHistory(updatedHistory);
+    if (isCorrect) setScore(prev => prev + 1);
 
-  const moveToNextOrEnd = () => {
-    setSelectedOptionId(null); 
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
-    } else {
-      // End of the test - navigate to results
-      navigateToResults();
-    }
-  };
-
-  const handleNextQuestion = () => {
-    let newScore = score;
-    if (selectedOptionId === questions[currentQuestionIndex].correctOptionId) {
-      newScore = score + 1;
-      setScore(prevScore => prevScore + 1); // Update score state immediately for current session
-    }
-
-    setSelectedOptionId(null); 
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
-    } else {
-      // End of the test - navigate to results, pass the potentially updated score
+    // If last question, save result and go to result screen
+    if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
+      const takenAt = new Date().toISOString();
+      await saveTestResult({
+        userId: currentUser?.userId,
+        category: category || 'General',
+        questions: updatedHistory,
+        score: isCorrect ? score + 1 : score,
+        takenAt,
+      });
       router.replace({
         pathname: '/TheoryTesting/TestResult',
         params: {
-          score: newScore.toString(), // Pass the final score
-          totalQuestions: questions.length.toString(),
-          category: category || "Unknown Category"
-        }
+          score: (isCorrect ? score + 1 : score).toString(),
+          totalQuestions: TOTAL_QUESTIONS.toString(),
+          category: category || 'General',
+        },
       });
+      return;
     }
+
+    // Otherwise, move to next question
+    setCurrentQuestionIndex(idx => idx + 1);
+    setSelectedOptionId(null);
   };
 
-  const handleSkipQuestion = () => {
-    moveToNextOrEnd();
+  const handleSkipQuestion = async () => {
+    if (!questions[currentQuestionIndex]) return;
+
+    // Save skipped question to history with no answer
+    const currentQuestion = questions[currentQuestionIndex];
+    const updatedHistory = [
+      ...questionHistory,
+      {
+        ...currentQuestion,
+        userAnswer: null,
+        isCorrect: false,
+      },
+    ];
+    setQuestionHistory(updatedHistory);
+
+    // If last question, save result and go to result screen
+    if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
+      const takenAt = new Date().toISOString();
+      await saveTestResult({
+        userId: currentUser?.userId,
+        category: category || 'General',
+        questions: updatedHistory,
+        score,
+        takenAt,
+      });
+      router.replace({
+        pathname: '/TheoryTesting/TestResult',
+        params: {
+          score: score.toString(),
+          totalQuestions: TOTAL_QUESTIONS.toString(),
+          category: category || 'General',
+        },
+      });
+      return;
+    }
+
+    // Otherwise, move to next question
+    setCurrentQuestionIndex(idx => idx + 1);
+    setSelectedOptionId(null);
+  };
+
+  const handleOptionSelect = (optionId: string) => {
+    setSelectedOptionId(optionId);
   };
 
   const handleExitTest = () => {
@@ -136,8 +212,7 @@ const TheoryTestScreen = () => {
             if (router.canGoBack()) {
               router.back();
             } else {
-              // Fallback if router.back() is not possible (e.g., deep link)
-              router.replace('/'); // Or navigate to a specific home/categories screen
+              router.replace('/');
             }
           }
         }
@@ -145,26 +220,10 @@ const TheoryTestScreen = () => {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || questions.length === 0) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center">
         <Text className="text-2xl font-cbold text-orange-500">Loading Questions...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  // Removed the 'if (showResults)' block that rendered results UI directly
-
-  if (questions.length === 0 && !isLoading) {
-    return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-purple-50">
-        <Text className="text-lg text-red-500">No questions available for this category.</Text>
-        <TouchableOpacity
-          className="mt-4 bg-orange-500 px-6 py-2 rounded-lg"
-          onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }}
-        >
-          <Text className="text-white font-csemibold">Go Back</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -187,7 +246,7 @@ const TheoryTestScreen = () => {
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20 }}>
         {/* Question Counter */}
         <Text className="text-orange-500 font-csemibold text-lg my-4">
-          {currentQuestionIndex + 1} / {questions.length}
+          {currentQuestionIndex + 1} / {TOTAL_QUESTIONS}
         </Text>
 
         {/* Question Text */}
@@ -228,7 +287,9 @@ const TheoryTestScreen = () => {
           onPress={handleNextQuestion}
           disabled={!selectedOptionId}
         >
-          <Text className="text-white text-center font-cbold text-base">NEXT</Text>
+          <Text className="text-white text-center font-cbold text-base">
+            {currentQuestionIndex + 1 >= TOTAL_QUESTIONS ? 'FINISH' : 'NEXT'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
