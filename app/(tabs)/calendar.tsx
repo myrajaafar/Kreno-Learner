@@ -141,22 +141,13 @@ const CalendarScreen = () => {
       // The AvailabilityContext's fetchAvailability (without date args) should fetch all.
       fetchAvailability(); 
 
-    }, [authLoading, currentUser?.userId, fetchLessonData, fetchAvailability]) // Removed selectedDate from dependencies
+    }, [authLoading, currentUser?.userId, fetchLessonData, fetchAvailability])
   );
 
   const onRefresh = useCallback(async () => {
     if (authLoading || !currentUser?.userId) return;
-
-    const today = new Date();
-    setSelectedDate(today); // Reset view to today
-    setCurrentDate(today);  // Reset week view to today
-    
-    console.log("CalendarScreen: Refreshing data for user:", currentUser.userId);
-    await Promise.all([
-        fetchLessonData(true, currentUser.userId), // Fetch all lessons with refresh flag
-        fetchAvailability() // Fetch all availability
-    ]);
-  }, [authLoading, currentUser?.userId, fetchLessonData, fetchAvailability]);
+    await fetchLessonData(true, currentUser.userId);
+  }, [authLoading, currentUser?.userId, fetchLessonData, selectedDate]);
 
   // lessonsForSelectedDate, lessonDaysMap, studentAvailableDaysMap will now filter
   // from the comprehensive allLessonsFromContext and studentAvailability data.
@@ -416,13 +407,29 @@ const CalendarScreen = () => {
       <View className="pt-3 px-4">
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-2xl font-cbold text-gray-800">My Calendar</Text>
-          <TouchableOpacity
-            className='bg-orange-500 rounded-lg p-2'
-            onPress={showDatePicker}>
-            <Text className="font-csemibold text-white m-1">
-              {format(selectedDate, 'MMMM - yyyy')}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              className="bg-orange-500 rounded-lg p-2 flex-row items-center"
+              onPress={showDatePicker}
+            >
+              <Text className="font-csemibold text-white m-1">
+                {selectedDate ? format(selectedDate, 'dd - MMMM - yyyy') : 'Select Date'}
+              </Text>
+            </TouchableOpacity>
+            {selectedDate && !isSameDay(selectedDate, new Date()) && (
+              <TouchableOpacity
+                onPress={() => {
+                  const today = new Date();
+                  setSelectedDate(today);
+                  setCurrentDate(today);
+                }}
+                className="ml-2"
+                accessibilityLabel="Clear date filter"
+              >
+                <MaterialCommunityIcons name="close-circle" size={26} color="#f97316" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <View className="flex-row items-center justify-center mb-4">
           <TouchableOpacity onPress={handlePreviousWeek} className="pr-2">

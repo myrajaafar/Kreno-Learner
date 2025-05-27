@@ -1,15 +1,13 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomHeader from '../../components/CustomHeader'; // Assuming you want the same header
 import { Stack } from 'expo-router';
 
 const AboutScreen = () => {
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <Stack.Screen options={{ headerShown: false }} />
       <CustomHeader showSettingsIcon={false} /> 
-      {/* Or configure header as needed, e.g., with a back button if CustomHeader supports it */}
       
       <ScrollView className="flex-1 p-4">
         <Text className="text-2xl font-cbold text-gray-800 mb-6">About Kreno</Text>
@@ -40,7 +38,7 @@ const AboutScreen = () => {
         
         {/* Add more sections as needed, e.g., Terms of Service, Privacy Policy links */}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

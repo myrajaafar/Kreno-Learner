@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Modal } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
 import LessonCard from '../../components/LessonCard';
-import { isPast, parseISO, startOfDay, differenceInDays, format } from 'date-fns';
+import { isPast, parseISO, parse, differenceInDays, format, isSameDay } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomHeader from '../../components/CustomHeader';
 import { useAuth } from '../../context/AuthContext';
 import { useLessonData, Lesson } from '../../context/LessonContext'; // Import the context
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 // Define an interface for the structure of a single evaluation object from the DB
 interface DBEvaluation {
@@ -107,8 +108,8 @@ const EvaluationCard: React.FC<{ evaluation: DBEvaluation; onPress: () => void; 
           )}
         </View>
         {isEditable() && (
-          <View className="bg-blue-100 px-2 py-1 rounded">
-            <Text className="text-xs text-blue-600 font-cmedium">Editable</Text>
+          <View className="bg-orange-100 px-2 py-1 rounded">
+            <Text className="text-xs text-orange-600 font-cmedium">Editable</Text>
           </View>
         )}
       </View>
@@ -163,6 +164,8 @@ const EvaluationHistoryList = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<DBEvaluation | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Function to fetch all sub-skills and create a mapping
   const fetchSubSkillsMapping = useCallback(async () => {
@@ -347,6 +350,50 @@ const EvaluationHistoryList = () => {
     }
   };
 
+  // Pending lessons logic (show only 3 oldest)
+  const oldestPendingLessons = useMemo(() => {
+    const pending: Lesson[] = [];
+    allLessonsFromContext.forEach(lesson => {
+      if (lesson.date && lesson.startTime && lesson.startTime !== 'N/A' && !lesson.EvaluationGiven) {
+        try {
+          const lessonDateTimeString = `${lesson.date}T${lesson.startTime}:00`;
+          const lessonDateTime = parseISO(lessonDateTimeString);
+          if (isPast(lessonDateTime)) {
+            pending.push(lesson);
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    });
+    pending.sort((a, b) => {
+      try {
+        const dateTimeA = parseISO(`${a.date}T${a.startTime}:00`);
+        const dateTimeB = parseISO(`${b.date}T${b.startTime}:00`);
+        return dateTimeA.getTime() - dateTimeB.getTime(); // oldest first
+      } catch {
+        return 0;
+      }
+    });
+    return pending.slice(0, 3);
+  }, [allLessonsFromContext]);
+
+
+  // Helper to normalize MM DD YYYY (e.g., "5 8 2024" -> "05 08 2024")
+  const normalizeDate = (dateStr: string) => {
+    const [mm, dd, yyyy] = dateStr.trim().split(' ');
+    if (!mm || !dd || !yyyy) return dateStr;
+    return `${mm.padStart(2, '0')} ${dd.padStart(2, '0')} ${yyyy}`;
+  };
+
+  const filteredEvaluations = selectedDate
+  ? dbEvaluations.filter(e => {
+      if (!e.submitted_at) return false;
+      const parsed = parseISO(e.submitted_at);
+      return isSameDay(parsed, selectedDate);
+    })
+  : dbEvaluations;
+
   if (isLoading || lessonsLoading) {
     return (
       <View className="flex-1 bg-white">
@@ -375,26 +422,81 @@ const EvaluationHistoryList = () => {
         }
       >
         <View className="pt-3 px-4 pb-5">
-          <Text className="text-2xl font-cbold mb-5 text-gray-800">Evaluation History</Text>
-          
-          {dbEvaluations.length === 0 ? (
+          <Text className="text-2xl font-cbold mb-5 text-gray-800">Pending Evaluations</Text>
+          {/* Pending Evaluation Section */}
+          {oldestPendingLessons.length > 0 && (
+            <View className="mb-6">
+              {oldestPendingLessons.map((lesson) => (
+                <LessonCard
+                  key={lesson.id}
+                  lesson={lesson}
+                  onPressAction={() =>
+                    router.push({
+                      pathname: '/Evaluation/EvaluationForm',
+                      params: {
+                        lessonId: lesson.id,
+                        lessonTitle: lesson.title,
+                      }
+                    })
+                  }
+                />
+              ))}
+            </View>
+          )}
+          {/* Date Filter Button */}
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-2xl font-cbold text-gray-800">Evaluation History</Text>
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                className='bg-orange-500 rounded-lg p-2 flex-row items-center'
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text className="font-csemibold text-white m-1">
+                  {selectedDate ? format(selectedDate, 'dd - MMMM - yyyy') : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+              {selectedDate && (
+                <TouchableOpacity
+                  onPress={() => setSelectedDate(null)}
+                  className="ml-2"
+                  accessibilityLabel="Clear date filter"
+                >
+                  <MaterialCommunityIcons name="close-circle" size={26} color="#f97316" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Evaluation History List */}
+          {filteredEvaluations.length === 0 ? (
             <View className="items-center justify-center p-8 bg-white rounded-lg">
               <MaterialCommunityIcons name="clipboard-text-outline" size={48} color="#9ca3af" />
               <Text className="text-center text-gray-500 mt-4 text-lg">No evaluations found</Text>
               <Text className="text-center text-gray-400 mt-1">Complete some lessons to see your evaluations here</Text>
             </View>
           ) : (
-            dbEvaluations.map((evaluation) => (
+            filteredEvaluations.map((evaluation) => (
               <EvaluationCard
                 key={evaluation.evaluation_id}
                 evaluation={evaluation}
                 lessons={allLessonsFromContext}
                 onPress={() => handleCardPress(evaluation)}
               />
-            ))
-          )}
+            )))
+          }
         </View>
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      <DateTimePickerModal
+        isVisible={showDatePicker}
+        mode="date"
+        onConfirm={(date) => {
+          setShowDatePicker(false);
+          setSelectedDate(date);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+      />
 
       {/* Evaluation Detail Modal */}
       {selectedEvaluation && (
