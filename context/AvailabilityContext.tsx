@@ -1,10 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { format } from 'date-fns';
-import { useAuth } from './AuthContext'; // Import useAuth
+import { useAuth } from './AuthContext';
+import { API_BASE_URL } from '../constants/api';
 
-// API_URL is defined in your original file, ensure it's correct
-const API_URL = 'http://192.168.1.51/kreno-api'; // Adjusted to base URL, endpoint will be appended
 
 export interface AvailabilitySlot {
   availability_id?: number;
@@ -44,7 +43,7 @@ export const AvailabilityProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (startDate) queryParams += `&start_date=${encodeURIComponent(format(startDate, 'yyyy-MM-dd'))}`;
       if (endDate) queryParams += `&end_date=${encodeURIComponent(format(endDate, 'yyyy-MM-dd'))}`;
 
-      const response = await fetch(`${API_URL}/availability_api.php?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/availability_api.php?${queryParams}`);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -73,7 +72,7 @@ export const AvailabilityProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/availability_api.php`, {
+      const response = await fetch(`${API_BASE_URL}/availability_api.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slotWithUser),
@@ -109,7 +108,7 @@ export const AvailabilityProvider: React.FC<{ children: ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/availability_api.php`, {
+      const response = await fetch(`${API_BASE_URL}/availability_api.php`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slotWithUser),

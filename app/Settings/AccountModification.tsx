@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import CustomHeader from "../../components/CustomHeader";
 import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
+import { API_BASE_URL } from '../../constants/api';
 
 const AccountModification = () => {
   const { currentUser } = useAuth();
@@ -28,7 +29,7 @@ const AccountModification = () => {
 
     setSaving(true);
     try {
-      const response = await fetch('http://192.168.1.51/kreno-api/update_profile_api.php', {
+      const response = await fetch(`${API_BASE_URL}/update_profile_api.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -60,7 +61,7 @@ const AccountModification = () => {
         <Text className="text-2xl font-cbold text-gray-800 mb-6">Modify Profile</Text>
         <Text className="mb-2 text-gray-700 font-cmedium">Enter Your New Email</Text>
         <TextInput
-          className="border rounded-lg px-3 py-2 mb-4 font-cregular text-sm"
+          className="border rounded-lg px-3 py-3 mb-4 font-cregular"
           placeholder="Enter new email"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -69,7 +70,7 @@ const AccountModification = () => {
         />
         <Text className="mb-2 text-gray-700 font-cmedium">Enter Your New Password</Text>
         <TextInput
-          className="border rounded-lg px-3 py-2 mb-6 font-cregular text-sm"
+          className="border rounded-lg px-3 py-3 mb-6 font-cregular"
           placeholder="Enter new password"
           secureTextEntry
           value={password}

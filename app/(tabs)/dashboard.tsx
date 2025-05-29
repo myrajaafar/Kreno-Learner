@@ -5,7 +5,9 @@ import CustomHeader from '../../components/CustomHeader';
 import LessonCard from '../../components/LessonCard';
 import { isFuture, isPast, parseISO, format } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLessonData, Lesson } from '../../context/LessonContext'; // Assuming Lesson type is exported
+import { useLessonData, Lesson } from '../../context/LessonContext';
+import { API_BASE_URL } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 
 // Helper function to calculate duration
 // This function will now receive startTime and endTime in "HH:mm" format or "N/A"/null
@@ -67,6 +69,11 @@ const Dashboard = () => {
 
   const [isLessonDetailModalVisible, setLessonDetailModalVisible] = useState(false);
   const [selectedLessonForModal, setSelectedLessonForModal] = useState<Lesson | null>(null);
+  const [testResults, setTestResults] = useState([]);
+  const [evaluations, setEvaluations] = useState([]);
+  const [loadingProgress, setLoadingProgress] = useState(true);
+  const [skills, setSkills] = useState([]);
+  const currentUser = useAuth().currentUser;
 
   // Memoize derived data to prevent re-calculations on every render
   const upcomingLessons = useMemo(() => {
@@ -121,36 +128,90 @@ const Dashboard = () => {
     // Show only the oldest 3
     return pending.slice(0, 3);
   }, [allLessonsFromContext]);
+  
+  const skillIdToName = useMemo(() => {
+    const map = {};
+    skills.forEach(skill => {
+      map[skill.skill_id] = skill.skill_name;
+    });
+    return map;
+  }, [skills]);
+
 
   const progressSummaryData = useMemo(() => {
-    const evaluatedLessons = allLessonsFromContext.filter(lesson => lesson.EvaluationGiven);
-    const evaluatedLessonsCount = evaluatedLessons.length;
-    // --- PLACEHOLDER DATA ---
-    // TODO: Replace these with actual calculations when detailed evaluation data is available.
-    // For now, we'll use placeholders if there's at least one evaluated lesson.
+    // Evaluated lessons count
+    const evaluatedLessonsCount = evaluations.length;
 
-    const overallSkillRatingPercent = evaluatedLessonsCount > 0 ? 70 : 0; // Placeholder: 70% if any evaluation, else 0
-    
-    const keyAreasForImprovement = evaluatedLessonsCount > 0 ? [
-      { name: "Roundabout entry/exit", details: "Avg: 2/5 (Placeholder)" },
-      { name: "Parallel parking", details: "Avg: 2.5/5 (Placeholder)" },
-    ] : [];
-    
-    const mockTestPerformance = {
-      latest: evaluatedLessonsCount > 0 ? "Passed (8 faults - Placeholder)" : "No mock tests recorded",
-      // Show previous only if there's a concept of multiple mock tests
-      previous: evaluatedLessonsCount > 1 ? "Failed (12 faults - Placeholder)" : null, 
-    };
-    // --- END PLACEHOLDER DATA ---
+    // Calculate average overall skill rating (0-100%)
+    let overallSkillRatingPercent = 0;
+    if (evaluations.length > 0) {
+      const avg = evaluations.reduce((sum, ev) => sum + (ev.overall_lesson_rating || 0), 0) / evaluations.length;
+      overallSkillRatingPercent = Math.round((avg / 5) * 100); // assuming 5 is max rating
+    }
+
+    // Key areas for improvement (lowest avg subskill ratings)
+    let keyAreasForImprovement = [];
+    if (evaluations.length > 0) {
+      const subskillTotals: Record<string, number> = {};
+      const subskillCounts: Record<string, number> = {};
+      evaluations.forEach(ev => {
+        if (ev.skill_ratings) {
+          Object.entries(ev.skill_ratings).forEach(([subskill, rating]) => {
+            const num = Number(rating);
+            if (!isNaN(num)) {
+              subskillTotals[subskill] = (subskillTotals[subskill] || 0) + num;
+              subskillCounts[subskill] = (subskillCounts[subskill] || 0) + 1;
+            }
+          });
+        }
+      });
+      const subskillAverages = Object.entries(subskillTotals).map(([subskill, total]) => ({
+        name: skillIdToName[subskill] || subskill,
+        avg: total / subskillCounts[subskill]
+      }));
+      keyAreasForImprovement = subskillAverages
+        .filter(area => !isNaN(area.avg))
+        .sort((a, b) => a.avg - b.avg)
+        .slice(0, 2)
+        .map(area => ({
+          name: area.name,
+          details: `Avg: ${area.avg.toFixed(1)}/5`
+        }));
+    }
+
+    // --- FIX: Move testKeyAreas here and return it ---
+    let testKeyAreas = [];
+    if (testResults.length > 0 && testResults[0].skills && skills.length > 0) {
+      testKeyAreas = testResults[0].skills
+        .map(s => ({
+          name: skillIdToName[s.skill_id] || s.skill_id,
+          score: s.score
+        }))
+        .filter(area => !isNaN(area.score))
+        .sort((a, b) => a.score - b.score)
+        .slice(0, 2);
+    }
+
+    // Mock test performance (latest and previous)
+    let mockTestPerformance = { latest: "No mock tests recorded", previous: null };
+    if (testResults.length > 0) {
+      const [latest, previous] = testResults;
+      mockTestPerformance.latest = latest
+        ? `Score: ${latest.score} (${latest.category}, ${latest.taken_at ? latest.taken_at.split(' ')[0] : ''})`
+        : "No mock tests recorded";
+      mockTestPerformance.previous = previous
+        ? `Score: ${previous.score} (${previous.category}, ${previous.taken_at ? previous.taken_at.split(' ')[0] : ''})`
+        : null;
+    }
 
     return {
       evaluatedLessonsCount,
-      overallSkillRatingPercent, // This will be used for the bar width
+      overallSkillRatingPercent,
       keyAreasForImprovement,
+      testKeyAreas, // <--- return it here!
       mockTestPerformance,
     };
-  }, [allLessonsFromContext]);
-
+  }, [evaluations, testResults, skills, skillIdToName]);
 
   const onRefresh = useCallback(async () => {
     // Pass true for isRefresh. Add userId if your fetchCoreData expects it.
@@ -163,22 +224,53 @@ const Dashboard = () => {
     }
   }, [lessonsError]);
 
+  useEffect(() => {
+    const fetchProgressData = async () => {
+      setLoadingProgress(true);
+      try {
+        // Fetch test results
+        const testRes = await fetch(`${API_BASE_URL}/get_test_results_api.php?userId=${currentUser.userId}`);
+        const testJson = await testRes.json();
+        setTestResults(testJson.results || []);
+
+        // Fetch evaluations
+        const evalRes = await fetch(`${API_BASE_URL}/evaluations_api.php?userId=${currentUser.userId}`);
+        const evalJson = await evalRes.json();
+        setEvaluations(evalJson.evaluations || []);
+      } catch (err) {
+        // handle error
+      }
+      setLoadingProgress(false);
+    };
+
+    if (currentUser?.userId) fetchProgressData();
+  }, [currentUser?.userId]);
+
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/skills_api.php`);
+        const json = await res.json();
+        setSkills(json.skills || []);
+      } catch (e) {
+        // Optionally handle error
+      }
+    };
+    fetchSkills();
+  }, []);
 
   const handleLessonDetails = (lesson: Lesson) => {
     setSelectedLessonForModal(lesson);
-    setLessonDetailModalVisible(true);
   };
-
-  const handleCloseLessonModal = () => {
-    setLessonDetailModalVisible(false);
-    setSelectedLessonForModal(null);
-  };
-
   const handleGiveEvaluation = (lesson: Lesson) => {
     router.push({
       pathname: '/Evaluation/EvaluationForm',
       params: { lessonId: lesson.id, lessonTitle: lesson.title }
     });
+  };
+  const handleCloseLessonModal = () => {
+    setLessonDetailModalVisible(false);
+    setSelectedLessonForModal(null);
   };
 
   return (
@@ -217,8 +309,11 @@ const Dashboard = () => {
                 upcomingLessons.map(lesson => (
                   <LessonCard
                     key={`upcoming-${lesson.id}`}
-                    lesson={lesson} 
-                    onPressAction={() => handleLessonDetails(lesson)}
+                    lesson={lesson}
+                    onPressAction={() => {
+                      setSelectedLessonForModal(lesson);
+                      setLessonDetailModalVisible(true);
+                    }}
                   />
                 ))
               ) : (
@@ -250,7 +345,9 @@ const Dashboard = () => {
               {/* Progress Summary Section - Now uses progressSummaryData */}
               <Text className="text-xl font-csemibold text-gray-700 mt-6 mb-3">Progress Summary</Text>
               <View className="mb-6 p-4 bg-gray-100 rounded-lg">
-                {progressSummaryData.evaluatedLessonsCount > 0 ? (
+                {loadingProgress ? (
+                  <ActivityIndicator size="small" color="#fb923c" />
+                ) : progressSummaryData.evaluatedLessonsCount > 0 ? (
                   <>
                     <View className="mb-3">
                       <Text className="text-base font-cmedium text-gray-800 mb-1">Overall Skill Rating (Evaluation):</Text>
@@ -272,10 +369,21 @@ const Dashboard = () => {
 
                     {progressSummaryData.keyAreasForImprovement.length > 0 && (
                       <View className="mb-3">
-                        <Text className="text-base font-cmedium text-gray-800 mb-1">Key Areas for Improvement:</Text>
+                        <Text className="text-base font-cmedium text-gray-800 mb-1">Key Areas for Improvement (Evaluations):</Text>
                         {progressSummaryData.keyAreasForImprovement.map((area, index) => (
                           <Text key={index} className="text-sm text-gray-600 ml-1">
                             - {area.name} ({area.details})
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    {progressSummaryData.testKeyAreas && progressSummaryData.testKeyAreas.length > 0 && (
+                      <View className="mb-3">
+                        <Text className="text-base font-cmedium text-gray-800 mb-1">Key Areas for Improvement (Mock Test):</Text>
+                        {progressSummaryData.testKeyAreas.map((area, index) => (
+                          <Text key={index} className="text-sm text-gray-600 ml-1">
+                            - {area.name} (Score: {area.score})
                           </Text>
                         ))}
                       </View>

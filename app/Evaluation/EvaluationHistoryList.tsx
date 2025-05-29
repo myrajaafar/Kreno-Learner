@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { router } from 'expo-router';
 import LessonCard from '../../components/LessonCard';
 import { isPast, parseISO, parse, differenceInDays, format, isSameDay } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomHeader from '../../components/CustomHeader';
 import { useAuth } from '../../context/AuthContext';
-import { useLessonData, Lesson } from '../../context/LessonContext'; // Import the context
+import { useLessonData, Lesson } from '../../context/LessonContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { API_BASE_URL } from '../../constants/api';
 
 // Define an interface for the structure of a single evaluation object from the DB
 interface DBEvaluation {
@@ -33,12 +34,12 @@ interface ApiSubSkill {
   description: string | null;
 }
 
-const DetailRow: React.FC<{ 
-  iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; 
-  label: string; 
-  value: string; 
-  valueColor?: string; 
-  isMultiline?: boolean 
+const DetailRow: React.FC<{
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  label: string;
+  value: string;
+  valueColor?: string;
+  isMultiline?: boolean
 }> = ({ iconName, label, value, valueColor = "text-gray-600", isMultiline = false }) => (
   <View className="mb-3">
     <View className="flex-row items-start">
@@ -170,7 +171,7 @@ const EvaluationHistoryList = () => {
   // Function to fetch all sub-skills and create a mapping
   const fetchSubSkillsMapping = useCallback(async () => {
     try {
-      const response = await fetch('http://192.168.1.51/kreno-api/sub_skills_api.php');
+      const response = await fetch(`${API_BASE_URL}/sub_skills_api.php`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -235,7 +236,7 @@ const EvaluationHistoryList = () => {
     }
     setFetchError(null);
     try {
-      const response = await fetch(`http://192.168.1.51/kreno-api/evaluations_api.php?userId=${currentUser.userId}`, {
+      const response = await fetch(`${API_BASE_URL}/evaluations_api.php?userId=${currentUser.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -268,14 +269,14 @@ const EvaluationHistoryList = () => {
   const loadData = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
     setFetchError(null);
-    
+
     // Use fetchCoreData from LessonContext instead of local fetch
     await Promise.all([
       fetchCoreData(isRefresh, currentUser?.userId),
       fetchEvaluationHistory(),
       fetchSubSkillsMapping() // Add this to load sub-skills mapping
     ]);
-    
+
     if (!isRefresh) setIsLoading(false);
   }, [fetchCoreData, fetchEvaluationHistory, fetchSubSkillsMapping, currentUser?.userId]);
 
@@ -351,32 +352,7 @@ const EvaluationHistoryList = () => {
   };
 
   // Pending lessons logic (show only 3 oldest)
-  const oldestPendingLessons = useMemo(() => {
-    const pending: Lesson[] = [];
-    allLessonsFromContext.forEach(lesson => {
-      if (lesson.date && lesson.startTime && lesson.startTime !== 'N/A' && !lesson.EvaluationGiven) {
-        try {
-          const lessonDateTimeString = `${lesson.date}T${lesson.startTime}:00`;
-          const lessonDateTime = parseISO(lessonDateTimeString);
-          if (isPast(lessonDateTime)) {
-            pending.push(lesson);
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
-    });
-    pending.sort((a, b) => {
-      try {
-        const dateTimeA = parseISO(`${a.date}T${a.startTime}:00`);
-        const dateTimeB = parseISO(`${b.date}T${b.startTime}:00`);
-        return dateTimeA.getTime() - dateTimeB.getTime(); // oldest first
-      } catch {
-        return 0;
-      }
-    });
-    return pending.slice(0, 3);
-  }, [allLessonsFromContext]);
+
 
 
   // Helper to normalize MM DD YYYY (e.g., "5 8 2024" -> "05 08 2024")
@@ -387,12 +363,12 @@ const EvaluationHistoryList = () => {
   };
 
   const filteredEvaluations = selectedDate
-  ? dbEvaluations.filter(e => {
+    ? dbEvaluations.filter(e => {
       if (!e.submitted_at) return false;
       const parsed = parseISO(e.submitted_at);
       return isSameDay(parsed, selectedDate);
     })
-  : dbEvaluations;
+    : dbEvaluations;
 
   if (isLoading || lessonsLoading) {
     return (
@@ -409,8 +385,8 @@ const EvaluationHistoryList = () => {
   return (
     <View className="flex-1 bg-gray-50">
       <CustomHeader showSettingsIcon={false} />
-      
-      <ScrollView 
+
+      <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl
@@ -424,9 +400,9 @@ const EvaluationHistoryList = () => {
         <View className="pt-3 px-4 pb-5">
           <Text className="text-2xl font-cbold mb-5 text-gray-800">Pending Evaluations</Text>
           {/* Pending Evaluation Section */}
-          {oldestPendingLessons.length > 0 && (
+          {pendingEvaluationLessons.length > 0 && (
             <View className="mb-6">
-              {oldestPendingLessons.map((lesson) => (
+              {pendingEvaluationLessons.map((lesson) => (
                 <LessonCard
                   key={lesson.id}
                   lesson={lesson}
@@ -511,9 +487,9 @@ const EvaluationHistoryList = () => {
               <View className="flex-row justify-between items-center pb-3 mb-4 border-b border-gray-200">
                 <View className="flex-1 mr-2">
                   <Text className="text-xl font-cbold text-gray-800" numberOfLines={1}>
-                    {selectedEvaluation.lesson_title || 
-                     allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.title || 
-                     `Lesson ${selectedEvaluation.lesson_id}`}
+                    {selectedEvaluation.lesson_title ||
+                      allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.title ||
+                      `Lesson ${selectedEvaluation.lesson_id}`}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={handleCloseModal} className="p-1 -mr-2 -mt-2">
@@ -528,7 +504,7 @@ const EvaluationHistoryList = () => {
                     iconName="calendar-blank-outline"
                     label="Lesson Date"
                     value={formatDisplayDate(
-                      selectedEvaluation.lesson_date || 
+                      selectedEvaluation.lesson_date ||
                       allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.date || ''
                     )}
                   />
@@ -537,16 +513,16 @@ const EvaluationHistoryList = () => {
                   <DetailRow
                     iconName="clock-outline"
                     label="Lesson Time"
-                    value={selectedEvaluation.lesson_start_time || 
-                           allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.startTime || 'N/A'}
+                    value={selectedEvaluation.lesson_start_time ||
+                      allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.startTime || 'N/A'}
                   />
                 )}
                 {(selectedEvaluation.skill_name || allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.skillName) && (
                   <DetailRow
                     iconName="lightbulb-on-outline"
                     label="Skill Focus"
-                    value={selectedEvaluation.skill_name || 
-                           allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.skillName || ''}
+                    value={selectedEvaluation.skill_name ||
+                      allLessonsFromContext.find(l => l.id === selectedEvaluation.lesson_id)?.skillName || ''}
                   />
                 )}
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../constants/api';
 
 interface Option {
   id: string;
@@ -20,7 +21,7 @@ const fetchAIQuestions = async (category: string, userId?: string): Promise<Ques
   let response, data;
   if (category.toLowerCase() === 'general') {
     // Use the weak spots API for General
-    response = await fetch('http://192.168.1.51/kreno-api/generate_weak_spots_api.php', {
+    response = await fetch(`${API_BASE_URL}/generate_weak_spots_api.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, limit: 2 }),
@@ -39,7 +40,7 @@ const fetchAIQuestions = async (category: string, userId?: string): Promise<Ques
     throw new Error(data.message || 'Failed to fetch weak spot questions');
   } else {
     // Use the normal AI questions API for specific categories
-    response = await fetch('http://192.168.1.51/kreno-api/generate_questions_api.php', {
+    response = await fetch(`${API_BASE_URL}/generate_questions_api.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ category, count: 15 }),
@@ -72,7 +73,7 @@ const saveTestResult = async ({
   score: number;
   takenAt: string;
 }) => {
-  await fetch('http://192.168.1.51/kreno-api/save_test_result_api.php', {
+  await fetch(`${API_BASE_URL}/save_test_result_api.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, category, questions, score, takenAt }),

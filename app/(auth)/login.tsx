@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { AdvancedCheckbox } from '../../components/AdvancedCheckBox';
-import { useAuth } from '../../context/AuthContext'; // Import useAuth
+import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../constants/api';
 
 const LoginScreen = () => {
   const [form, setForm] = useState({
@@ -26,7 +27,7 @@ const LoginScreen = () => {
     };
 
     try {
-      const response = await fetch('http://192.168.1.51/kreno-api/evaluations_api.php', {
+      const response = await fetch(`${API_BASE_URL}/evaluations_api.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLessonData } from '../../context/LessonContext';
 import { useAuth } from '../../context/AuthContext';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { API_BASE_URL } from '../../constants/api';
 
 const ICON_RATINGS = [
   { iconName: 'emoticon-sad-outline', value: 'Very Poor', description: "Needs Significant Improvement", color: '#ef4444' },
@@ -105,7 +106,7 @@ const EvaluationForm = () => {
         setIsLoadingEvaluation(true);
         try {
           
-          const response = await fetch(`http://192.168.1.51/kreno-api/evaluations_api.php?evaluationId=${evaluationId}`, {
+          const response = await fetch(`${API_BASE_URL}/evaluations_api.php?evaluationId=${evaluationId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -188,7 +189,7 @@ const EvaluationForm = () => {
 
       setIsLoadingSubSkills(true);
       try {
-        const response = await fetch(`http://192.168.1.51/kreno-api/sub_skills_api.php?skill_id=${currentLesson.skillId}`);
+        const response = await fetch(`${API_BASE_URL}/sub_skills_api.php?skill_id=${currentLesson.skillId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -293,7 +294,7 @@ const EvaluationForm = () => {
     console.log(`${isEditMode ? 'Updating' : 'Submitting'} Evaluation Data:`, JSON.stringify(evaluationData, null, 2));
 
     try {
-      const response = await fetch('http://192.168.1.51/kreno-api/evaluations_api.php', {
+      const response = await fetch(`${API_BASE_URL}/evaluations_api.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(evaluationData),

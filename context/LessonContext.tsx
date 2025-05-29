@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useContext, ReactNode } from 'react';
-import { Alert } from 'react-native';
 import { format, parseISO } from 'date-fns';
+import { API_BASE_URL } from '../constants/api';
 
 // --- Interfaces (assuming these are correct based on previous discussions) ---
 export interface ApiSkill {
@@ -55,7 +55,6 @@ interface LessonContextType {
 }
 
 const LessonContext = createContext<LessonContextType | undefined>(undefined);
-const API_BASE_URL = 'http://192.168.1.51/kreno-api';
 
 // Ensure this is the robust version of the function
 export const robustFormatApiTime = (dateStr: string, timeStr: string | null | undefined): string | null => {
