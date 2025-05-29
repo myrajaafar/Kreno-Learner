@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, Modal, ActivityIndicator } from 'react-native';
-import { format, addDays, startOfWeek, getDate, isSameDay, eachDayOfInterval, getHours, setHours, setMinutes, setSeconds, setMilliseconds, isBefore, subDays, parseISO } from 'date-fns';
+import { format, addDays, startOfWeek, getDate, isSameDay, eachDayOfInterval, getHours, setHours, setMinutes, setSeconds, setMilliseconds, isBefore, subDays, parseISO, isPast } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
@@ -143,6 +143,7 @@ const CalendarScreen = () => {
 
     }, [authLoading, currentUser?.userId, fetchLessonData, fetchAvailability])
   );
+
 
   const onRefresh = useCallback(async () => {
     if (authLoading || !currentUser?.userId) return;
@@ -581,6 +582,7 @@ const CalendarScreen = () => {
                   <MaterialCommunityIcons name="close-circle-outline" size={28} color="#6b7280" />
                 </TouchableOpacity>
               </View>
+              
               <DetailRow iconName="calendar-blank-outline" label="Date" value={format(parseISO(selectedLessonForModal.date), 'EEEE d MMMM yyyy')} />
               <DetailRow iconName="clock-outline" label="Time" value={`${selectedLessonForModal.startTime}${selectedLessonForModal.endTime && selectedLessonForModal.endTime !== 'N/A' ? ` - ${selectedLessonForModal.endTime}` : ''}`} />
               <DetailRow iconName="timer-sand" label="Duration" value={calculateDuration(selectedLessonForModal.startTime, selectedLessonForModal.endTime)} />

@@ -22,7 +22,6 @@ export default function RootLayout() {
           </Stack>
         </AvailabilityProvider>
       </LessonProvider>
-
     </AuthProvider>
   );
 }

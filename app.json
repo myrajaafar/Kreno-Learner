@@ -8,13 +8,34 @@
     "scheme": "kreno",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
+      ]
+    ],
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.myrajaafar.Kreno"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,18 +43,45 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.myrajaafar.Kreno"
+      "package": "com.myrajaafar.Kreno",
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      [
-        "expo-router"
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#ffffff",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Kreno",
+      "channels": [
+        {
+          "name": "lesson-reminders",
+          "importance": "high",
+          "sound": true,
+          "vibrate": true,
+          "description": "Reminders for upcoming lessons"
+        },
+        {
+          "name": "lesson-evaluations",
+          "importance": "default",
+          "sound": true,
+          "vibrate": false,
+          "description": "Reminders to evaluate completed lessons"
+        },
+        {
+          "name": "daily-tips",
+          "importance": "default",
+          "sound": true,
+          "vibrate": false,
+          "description": "Daily learning tips based on your performance"
+        }
       ]
-    ],
+    },
     "experiments": {
       "typedRoutes": true
     },
