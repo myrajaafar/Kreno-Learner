@@ -8,19 +8,6 @@
     "scheme": "kreno",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "plugins": [
-      "expo-router",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/sounds/notification.wav"
-          ]
-        }
-      ]
-    ],
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
